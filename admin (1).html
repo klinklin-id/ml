@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panel Panitia — Turnamen MLBB</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --void:#0B0817;--night:#130D26;--panel:#191134;--panel2:#1F1642;--line:#2E2260;--line-soft:#241A4C;
+  --gold:#F5C451;--flame:#FF4D6D;--violet:#9B7BFF;--mint:#3FE0C8;--ink:#F1EDFF;--muted:#9C93C6;--dim:#6E6598;
+  --grad-gold:linear-gradient(135deg,#FFE08A,#F5C451 40%,#FF8A3D);
+  --grad-line:linear-gradient(135deg,rgba(245,196,81,.5),rgba(155,123,255,.32) 50%,rgba(255,77,109,.3));
+  --display:"Saira Condensed",Impact,sans-serif;--body:"Plus Jakarta Sans",system-ui,sans-serif;--mono:"JetBrains Mono",ui-monospace,monospace;
+  --r:3px;--shadow:0 24px 60px -30px #000;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--void);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;
+  background:radial-gradient(700px 480px at 10% -6%,rgba(120,70,220,.34),transparent 62%),
+  radial-gradient(560px 420px at 92% 2%,rgba(230,60,120,.2),transparent 60%),var(--void)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+a{color:var(--violet);text-decoration:none}a:hover{color:var(--gold)}
+:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+.wrap{width:min(1200px,93vw);margin:0 auto}
+h1,h2,h3{font-family:var(--display);font-weight:800;letter-spacing:.02em;text-transform:uppercase;margin:0;line-height:1.05}
+h2{font-size:clamp(26px,4vw,38px)}h3{font-size:20px}
+.eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);display:flex;align-items:center;gap:9px;margin:0}
+.eyebrow::before{content:"";width:16px;height:1px;background:var(--gold);opacity:.7}
+.muted{color:var(--muted)}.small{font-size:13px}.mono{font-family:var(--mono)}
+
+.topbar{position:sticky;top:0;z-index:60;background:rgba(11,8,23,.78);backdrop-filter:blur(16px);border-bottom:1px solid var(--line-soft)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;height:66px}
+.brand{display:flex;align-items:center;gap:11px;color:var(--ink);font-family:var(--display);font-size:19px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+.crest{width:24px;height:28px;background:var(--grad-gold);clip-path:polygon(50% 0,100% 24%,100% 74%,50% 100%,0 74%,0 24%);box-shadow:0 0 22px rgba(245,196,81,.45)}
+.nav{margin-left:auto;display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+.nav::-webkit-scrollbar{display:none}
+.nav button{position:relative;background:none;border:0;color:var(--muted);cursor:pointer;white-space:nowrap;
+  font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;padding:9px 13px;transition:color .2s}
+.nav button::after{content:"";position:absolute;left:13px;right:13px;bottom:0;height:2px;background:var(--grad-gold);transform:scaleX(0);transition:transform .28s}
+.nav button:hover{color:var(--ink)}.nav button.active{color:var(--gold)}.nav button.active::after{transform:scaleX(1)}
+
+.btn{--bg:var(--grad-gold);--fg:#241703;display:inline-flex;align-items:center;justify-content:center;gap:9px;cursor:pointer;
+  padding:11px 22px;border:0;background:var(--bg);color:var(--fg);font-family:var(--display);font-size:14.5px;font-weight:800;
+  letter-spacing:.09em;text-transform:uppercase;clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);
+  transition:transform .18s,filter .18s}
+.btn:hover{transform:translateY(-2px);filter:brightness(1.07)}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.btn-ghost{--bg:transparent;--fg:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
+.btn-ghost:hover{--fg:var(--gold);box-shadow:inset 0 0 0 1px var(--gold)}
+.btn-danger{--bg:linear-gradient(135deg,#FF6B85,#E12A50);--fg:#fff}
+.btn-sm{padding:6px 14px;font-size:13px;clip-path:polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px)}
+
+.card{position:relative;background:linear-gradient(168deg,var(--panel2),var(--night) 72%);border-radius:var(--r);padding:24px;box-shadow:var(--shadow)}
+.card::before{content:"";position:absolute;inset:0;border-radius:var(--r);padding:1px;background:var(--grad-line);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;opacity:.5}
+.card+.card{margin-top:16px}
+.grid{display:grid;gap:16px}.g2{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(3,1fr)}
+@media(max-width:860px){.g2,.g3{grid-template-columns:1fr}}
+
+label.field{display:block;margin-bottom:14px}
+label.field>span{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--dim);margin-bottom:7px}
+input,select{width:100%;padding:11px 13px;background:rgba(8,5,18,.75);color:var(--ink);border:1px solid var(--line-soft);
+  border-radius:var(--r);font-family:var(--body);font-size:14px;transition:border-color .2s,box-shadow .2s}
+input:focus,select:focus{outline:none;border-color:var(--violet);box-shadow:0 0 0 3px rgba(155,123,255,.14)}
+option{background:var(--night)}
+
+.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:999px;font-family:var(--mono);font-size:9.5px;
+  letter-spacing:.14em;text-transform:uppercase;border:1px solid var(--line);color:var(--muted)}
+.badge.gold{color:var(--gold);border-color:rgba(245,196,81,.42);background:rgba(245,196,81,.09)}
+.badge.mint{color:var(--mint);border-color:rgba(63,224,200,.4);background:rgba(63,224,200,.08)}
+.badge.violet{color:var(--violet);border-color:rgba(155,123,255,.42);background:rgba(155,123,255,.09)}
+.badge.flame{color:var(--flame);border-color:rgba(255,77,109,.42);background:rgba(255,77,109,.08)}
+
+.logo{width:32px;height:36px;flex:none;background:linear-gradient(160deg,var(--panel2),#2A1F55);color:var(--gold);display:grid;place-items:center;
+  font-family:var(--display);font-size:13px;clip-path:polygon(50% 0,100% 24%,100% 74%,50% 100%,0 74%,0 24%);background-size:cover;background-position:center}
+.tname{font-weight:700}.ttag{font-family:var(--mono);font-size:10.5px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase}
+
+section.page{display:none;padding:44px 0 90px}
+section.page.active{display:block;animation:fade .35s ease}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.sec-head{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+.sec-head .grow{flex:1;min-width:200px}.sec-head h2{margin-top:10px}
+
+.table-scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:560px}
+th{font-family:var(--mono);font-size:9.5px;letter-spacing:.17em;text-transform:uppercase;color:var(--dim);text-align:left;padding:10px 12px;border-bottom:1px solid var(--line)}
+td{padding:11px 12px;border-bottom:1px solid var(--line-soft)}
+td.num,th.num{text-align:center;font-family:var(--mono)}
+
+.round-head{display:flex;align-items:center;gap:14px;margin:30px 0 12px;font-family:var(--mono);font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--dim)}
+.round-head::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--line),transparent)}
+
+.adm-match{display:grid;grid-template-columns:1fr 150px 1fr auto;gap:14px;align-items:center;
+  background:linear-gradient(120deg,var(--panel),var(--night));border:1px solid var(--line-soft);border-radius:var(--r);
+  padding:12px 16px;margin-bottom:9px;transition:border-color .2s}
+.adm-match:hover{border-color:var(--line)}
+.adm-match .side{display:flex;align-items:center;gap:10px;min-width:0}
+.adm-match .side.away{flex-direction:row-reverse}
+.adm-match .center{display:flex;align-items:center;gap:8px;justify-content:center}
+.adm-match .tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.score-input{width:56px;text-align:center;font-family:var(--mono);font-size:17px;padding:8px 4px}
+@media(max-width:980px){.adm-match{grid-template-columns:1fr}.adm-match .side.away{flex-direction:row}.adm-match .tools{justify-content:flex-start}}
+
+.empty{border:1px dashed var(--line);border-radius:var(--r);padding:40px 22px;text-align:center;color:var(--muted)}
+.empty strong{display:block;font-family:var(--display);font-size:19px;color:var(--ink);letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px}
+.divider{height:1px;background:var(--line-soft);margin:22px 0}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}.row.end{justify-content:flex-end}
+.toast-box{position:fixed;right:20px;bottom:20px;z-index:99;display:grid;gap:9px}
+.toast{background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--mint);padding:13px 18px;border-radius:var(--r);max-width:340px;box-shadow:var(--shadow);font-size:14px}
+.toast-err{border-left-color:var(--flame)}.toast-warn{border-left-color:var(--gold)}
+
+.login-shell{min-height:100vh;display:grid;place-items:center;padding:24px}
+.login-card{width:min(420px,100%)}
+.seed-strip{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.step{display:flex;gap:14px;align-items:flex-start;padding:12px 0;border-top:1px solid var(--line-soft)}
+.step .n{font-family:var(--mono);font-size:11px;color:var(--gold);padding-top:3px}
+</style>
+</head>
+<body>
+
+<!-- ---------- LOGIN ---------- -->
+<div class="login-shell" id="loginShell">
+  <form class="card login-card" id="loginForm">
+    <div class="crest" style="margin-bottom:16px"></div>
+    <p class="eyebrow">Panel panitia</p>
+    <h2 style="margin:10px 0 20px">Masuk</h2>
+    <label class="field"><span>Email</span><input name="email" type="email" required autocomplete="username"></label>
+    <label class="field"><span>Kata sandi</span><input name="password" type="password" required autocomplete="current-password"></label>
+    <button class="btn" style="width:100%" id="loginBtn">Masuk</button>
+    <p class="muted small" style="margin-top:16px">Akun dibuat di Supabase Dashboard → Authentication → Users → Add user.
+      <a href="index.html">Kembali ke halaman turnamen</a>.</p>
+  </form>
+</div>
+
+<!-- ---------- PANEL ---------- -->
+<div id="app" hidden>
+<header class="topbar"><div class="wrap">
+  <a class="brand" href="index.html"><span class="crest"></span>Panel panitia</a>
+  <nav class="nav">
+    <button data-tab="tim" class="active">Tim</button>
+    <button data-tab="jadwal">Jadwal & skor</button>
+    <button data-tab="bracket">Playoff</button>
+    <button data-tab="setelan">Pengaturan</button>
+  </nav>
+</div></header>
+
+<main class="wrap">
+  <!-- TIM -->
+  <section class="page active" id="tab-tim">
+    <div class="sec-head">
+      <div class="grow"><p class="eyebrow">Verifikasi</p><h2>Pendaftar baru</h2></div>
+      <span class="badge gold" id="pendingCount">0 menunggu</span>
+    </div>
+    <div id="pendingList"></div>
+    <div class="sec-head" style="margin-top:44px"><div class="grow"><p class="eyebrow">Peserta resmi</p><h2>Tim terverifikasi</h2></div></div>
+    <div id="approvedList"></div>
+  </section>
+
+  <!-- JADWAL -->
+  <section class="page" id="tab-jadwal">
+    <div class="sec-head">
+      <div class="grow"><p class="eyebrow">Babak reguler</p><h2>Jadwal & skor</h2></div>
+      <button class="btn btn-ghost btn-sm" id="btnGenSchedule">Buat ulang jadwal</button>
+    </div>
+    <div class="card" style="margin-bottom:20px">
+      <p class="muted small" style="margin:0">Jadwal disusun otomatis: seluruh tim terverifikasi saling bertemu dua kali,
+        kandang dan tandang, Best of 3. Membuat ulang akan menghapus jadwal dan skor babak reguler yang ada.
+        Skor sah untuk Bo3 hanya 2–0 atau 2–1; kosongkan keduanya untuk mengembalikan match ke status belum main.</p>
+    </div>
+    <div id="admSchedule"></div>
+  </section>
+
+  <!-- BRACKET -->
+  <section class="page" id="tab-bracket">
+    <div class="sec-head">
+      <div class="grow"><p class="eyebrow">Playoff</p><h2>Bracket double elimination</h2></div>
+      <button class="btn btn-ghost btn-sm" id="btnGenBracket">Buat ulang bracket</button>
+    </div>
+    <div class="card" style="margin-bottom:20px">
+      <p class="muted small" style="margin:0">Seed diambil dari klasemen terakhir. Slot lawan di babak berikutnya
+        terisi sendiri begitu skor disimpan, termasuk tim yang turun ke lower bracket.</p>
+      <div class="seed-strip" id="seedPreview"></div>
+    </div>
+    <div id="admBracket"></div>
+  </section>
+
+  <!-- SETELAN -->
+  <section class="page" id="tab-setelan">
+    <div class="sec-head"><div class="grow"><p class="eyebrow">Konfigurasi</p><h2>Pengaturan turnamen</h2></div></div>
+    <form class="card" id="settingsForm">
+      <div class="grid g2">
+        <label class="field"><span>Nama turnamen</span><input name="tournament_name" maxlength="60"></label>
+        <label class="field"><span>Season</span><input name="season" maxlength="40"></label>
+      </div>
+      <div class="grid g3">
+        <label class="field"><span>Penyelenggara</span><input name="organizer" maxlength="60"></label>
+        <label class="field"><span>Slot playoff</span><select name="playoff_slots"><option value="6">6 tim</option><option value="4">4 tim</option></select></label>
+        <label class="field"><span>Pendaftaran</span><select name="registration_open"><option value="true">Dibuka</option><option value="false">Ditutup</option></select></label>
+      </div>
+      <div class="row end"><button class="btn">Simpan pengaturan</button></div>
+    </form>
+
+    <div class="card">
+      <h3>Alur kerja</h3>
+      <div class="step"><span class="n">01</span><span class="muted small">Buka pendaftaran, sebarkan tautan halaman utama.</span></div>
+      <div class="step"><span class="n">02</span><span class="muted small">Verifikasi roster yang masuk di tab Tim.</span></div>
+      <div class="step"><span class="n">03</span><span class="muted small">Tutup pendaftaran, lalu buat jadwal.</span></div>
+      <div class="step"><span class="n">04</span><span class="muted small">Isi skor tiap match; klasemen ikut berubah otomatis.</span></div>
+      <div class="step"><span class="n">05</span><span class="muted small">Setelah babak reguler beres, buat bracket playoff.</span></div>
+    </div>
+
+    <div class="card">
+      <h3>Akun</h3>
+      <div class="row" style="margin-top:12px">
+        <span class="muted small" id="whoami"></span>
+        <button class="btn btn-ghost btn-sm" id="btnLogout" style="margin-left:auto">Keluar</button>
+      </div>
+    </div>
+  </section>
+</main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/* =====================================================================
+   KONFIGURASI — samakan dengan index.html
+   ===================================================================== */
+const SUPABASE_URL = "https://xxxxxxxxxxxx.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOi...ganti_dengan_anon_public_key";
+/* ===================================================================== */
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const initials = n => String(n || "?").trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
+function toast(msg, kind = "ok") {
+  let box = $("#toastBox");
+  if (!box) { box = document.createElement("div"); box.id = "toastBox"; box.className = "toast-box"; document.body.appendChild(box); }
+  const t = document.createElement("div"); t.className = "toast toast-" + kind; t.textContent = msg;
+  box.appendChild(t); setTimeout(() => t.remove(), 4200);
+}
+
+/* ---------- logika turnamen ---------- */
+function computeStandings(teams, matches) {
+  const map = new Map();
+  teams.forEach(t => map.set(t.id, { team: t, mp: 0, mw: 0, ml: 0, gw: 0, gl: 0 }));
+  const done = matches.filter(m => m.status === "finished" && map.has(m.home_team_id) && map.has(m.away_team_id));
+  for (const m of done) {
+    const h = map.get(m.home_team_id), a = map.get(m.away_team_id);
+    const hs = m.home_score || 0, as = m.away_score || 0;
+    h.gw += hs; h.gl += as; a.gw += as; a.gl += hs;
+    if (hs > as) { h.mp++; h.mw++; a.ml++; } else if (as > hs) { a.mp++; a.mw++; h.ml++; }
+  }
+  const rows = [...map.values()].map(r => ({ ...r, ngw: r.gw - r.gl }));
+  rows.sort((x, y) => (y.mp - x.mp) || (y.ngw - x.ngw) || (y.gw - x.gw) || x.team.name.localeCompare(y.team.name, "id"));
+  let i = 0;
+  while (i < rows.length) {
+    let j = i;
+    while (j + 1 < rows.length && rows[j + 1].mp === rows[i].mp && rows[j + 1].ngw === rows[i].ngw) j++;
+    if (j > i) {
+      const group = rows.slice(i, j + 1), ids = new Set(group.map(r => r.team.id));
+      const h2h = new Map(group.map(r => [r.team.id, { mp: 0, ngw: 0 }]));
+      for (const m of done) {
+        if (!ids.has(m.home_team_id) || !ids.has(m.away_team_id)) continue;
+        const hs = m.home_score || 0, as = m.away_score || 0;
+        const H = h2h.get(m.home_team_id), A = h2h.get(m.away_team_id);
+        H.ngw += hs - as; A.ngw += as - hs;
+        if (hs > as) H.mp++; else if (as > hs) A.mp++;
+      }
+      group.sort((x, y) => { const X = h2h.get(x.team.id), Y = h2h.get(y.team.id);
+        return (Y.mp - X.mp) || (Y.ngw - X.ngw) || (y.gw - x.gw); });
+      group.forEach((r, k) => rows[i + k] = r);
+    }
+    i = j + 1;
+  }
+  rows.forEach((r, idx) => r.rank = idx + 1);
+  return rows;
+}
+
+function generateSchedule(teamIds) {
+  const list = [...teamIds]; if (list.length < 2) return [];
+  if (list.length % 2) list.push(null);
+  const n = list.length, half = n / 2, total = n - 1, rot = list.slice(1), legs = [];
+  for (let r = 0; r < total; r++) {
+    const order = [list[0], ...rot], pairs = [];
+    for (let i = 0; i < half; i++) { const a = order[i], b = order[n - 1 - i]; if (a && b) pairs.push(r % 2 ? [b, a] : [a, b]); }
+    legs.push(pairs); rot.unshift(rot.pop());
+  }
+  const out = [];
+  legs.forEach((p, i) => out.push({ round: i + 1, leg: 1, pairs: p }));
+  legs.forEach((p, i) => out.push({ round: total + i + 1, leg: 2, pairs: p.map(([h, a]) => [a, h]) }));
+  return out;
+}
+
+const BRACKET_TEMPLATES = {
+  6: [
+    { code: "UB1", label: "Upper Bracket R1 · Match 1", stage: "upper", round: 1, order_no: 1, best_of: 3, home_source: "seed:3", away_source: "seed:6" },
+    { code: "UB2", label: "Upper Bracket R1 · Match 2", stage: "upper", round: 1, order_no: 2, best_of: 3, home_source: "seed:4", away_source: "seed:5" },
+    { code: "UB3", label: "Upper Bracket Semifinal 1", stage: "upper", round: 2, order_no: 1, best_of: 3, home_source: "seed:1", away_source: "W:UB2" },
+    { code: "UB4", label: "Upper Bracket Semifinal 2", stage: "upper", round: 2, order_no: 2, best_of: 3, home_source: "seed:2", away_source: "W:UB1" },
+    { code: "UBF", label: "Upper Bracket Final", stage: "upper", round: 3, order_no: 1, best_of: 5, home_source: "W:UB3", away_source: "W:UB4" },
+    { code: "LB1", label: "Lower Bracket R1", stage: "lower", round: 1, order_no: 1, best_of: 3, home_source: "L:UB1", away_source: "L:UB2" },
+    { code: "LB2", label: "Lower Bracket R2", stage: "lower", round: 2, order_no: 1, best_of: 3, home_source: "W:LB1", away_source: "L:UB3" },
+    { code: "LB3", label: "Lower Bracket Semifinal", stage: "lower", round: 3, order_no: 1, best_of: 3, home_source: "W:LB2", away_source: "L:UB4" },
+    { code: "LBF", label: "Lower Bracket Final", stage: "lower", round: 4, order_no: 1, best_of: 5, home_source: "W:LB3", away_source: "L:UBF" },
+    { code: "GF", label: "Grand Final", stage: "grand", round: 5, order_no: 1, best_of: 5, home_source: "W:UBF", away_source: "W:LBF" }
+  ],
+  4: [
+    { code: "UB1", label: "Upper Bracket Semifinal 1", stage: "upper", round: 1, order_no: 1, best_of: 3, home_source: "seed:1", away_source: "seed:4" },
+    { code: "UB2", label: "Upper Bracket Semifinal 2", stage: "upper", round: 1, order_no: 2, best_of: 3, home_source: "seed:2", away_source: "seed:3" },
+    { code: "UBF", label: "Upper Bracket Final", stage: "upper", round: 2, order_no: 1, best_of: 5, home_source: "W:UB1", away_source: "W:UB2" },
+    { code: "LB1", label: "Lower Bracket R1", stage: "lower", round: 1, order_no: 1, best_of: 3, home_source: "L:UB1", away_source: "L:UB2" },
+    { code: "LBF", label: "Lower Bracket Final", stage: "lower", round: 2, order_no: 1, best_of: 5, home_source: "W:LB1", away_source: "L:UBF" },
+    { code: "GF", label: "Grand Final", stage: "grand", round: 3, order_no: 1, best_of: 5, home_source: "W:UBF", away_source: "W:LBF" }
+  ]
+};
+
+function resolveBracket(bms, seeds) {
+  const byCode = new Map(bms.map(b => [b.code, b]));
+  const result = code => {
+    const b = byCode.get(code);
+    if (!b || b.status !== "finished" || !b.home_team_id || !b.away_team_id || b.home_score === b.away_score) return null;
+    return b.home_score > b.away_score
+      ? { winner: b.home_team_id, loser: b.away_team_id }
+      : { winner: b.away_team_id, loser: b.home_team_id };
+  };
+  const from = src => {
+    if (!src) return null;
+    const [kind, val] = src.split(":");
+    if (kind === "seed") return seeds[+val - 1] || null;
+    const r = result(val);
+    return r ? (kind === "W" ? r.winner : r.loser) : null;
+  };
+  const changed = [];
+  for (let pass = 0; pass < 3; pass++) for (const b of bms) {
+    const h = from(b.home_source), a = from(b.away_source);
+    if (h !== (b.home_team_id ?? null) || a !== (b.away_team_id ?? null)) {
+      b.home_team_id = h; b.away_team_id = a;
+      if (!changed.includes(b)) changed.push(b);
+    }
+  }
+  return changed;
+}
+const validScore = (bo, a, b) => {
+  const need = Math.ceil(bo / 2), hi = Math.max(a, b), lo = Math.min(a, b);
+  return hi === need && lo < need && lo >= 0;
+};
+
+/* ---------- state ---------- */
+let SETTINGS = {}, TEAMS = [], PLAYERS = [], MATCHES = [], BRACKET = [], STANDINGS = [];
+const teamById = id => TEAMS.find(t => t.id === id);
+const nameOf = id => teamById(id)?.name || "Menunggu hasil";
+function logoHtml(t) {
+  if (!t) return `<span class="logo">?</span>`;
+  const bg = t.logo_url ? ` style="background-image:url('${esc(t.logo_url)}')"` : "";
+  return `<span class="logo"${bg}>${t.logo_url ? "" : esc(initials(t.tag || t.name))}</span>`;
+}
+
+/* ---------- auth ---------- */
+$("#loginForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const btn = $("#loginBtn"); btn.disabled = true; btn.textContent = "Memeriksa…";
+  const { error } = await sb.auth.signInWithPassword({ email: e.target.email.value.trim(), password: e.target.password.value });
+  btn.disabled = false; btn.textContent = "Masuk";
+  if (error) return toast("Email atau kata sandi tidak cocok.", "err");
+  boot();
+});
+$("#btnLogout").addEventListener("click", async () => { await sb.auth.signOut(); location.reload(); });
+
+async function boot() {
+  const { data } = await sb.auth.getSession();
+  if (!data.session) { $("#loginShell").hidden = false; $("#app").hidden = true; return; }
+  $("#loginShell").hidden = true; $("#app").hidden = false;
+  $("#whoami").textContent = "Masuk sebagai " + data.session.user.email;
+  await loadAll();
+}
+
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-tab]"); if (!b) return;
+  $$(".page").forEach(p => p.classList.toggle("active", p.id === "tab-" + b.dataset.tab));
+  $$(".nav button").forEach(x => x.classList.toggle("active", x === b));
+});
+
+/* ---------- data ---------- */
+async function loadAll() {
+  const [s, t, p, m, b] = await Promise.all([
+    sb.from("settings").select("*").eq("id", 1).single(),
+    sb.from("teams").select("*").order("created_at"),
+    sb.from("players").select("*").order("slot"),
+    sb.from("matches").select("*").order("round").order("leg"),
+    sb.from("bracket_matches").select("*").order("round").order("order_no")
+  ]);
+  if (t.error) return toast("Gagal memuat: " + t.error.message, "err");
+  SETTINGS = s.data || {}; TEAMS = t.data || []; PLAYERS = p.data || [];
+  MATCHES = m.data || []; BRACKET = b.data || [];
+  STANDINGS = computeStandings(TEAMS.filter(x => x.status === "approved"), MATCHES);
+  renderTeams(); renderSettings(); renderSchedule(); renderBracket();
+}
+
+/* ---------- tim ---------- */
+function teamBlock(t, actions) {
+  const roster = PLAYERS.filter(p => p.team_id === t.id).sort((a, b) => a.slot - b.slot);
+  return `<div class="card" style="margin-bottom:14px">
+    <div class="row">${logoHtml(t)}
+      <div><div class="tname" style="font-size:17px">${esc(t.name)}</div>
+        <div class="ttag">${esc(t.tag || "—")}${t.division ? " · " + esc(t.division) : ""} · WA ${esc(t.captain_wa || "—")}</div></div>
+      <div class="row" style="margin-left:auto">${actions}</div></div>
+    <div class="table-scroll" style="margin-top:14px">
+      <table><thead><tr><th class="num">#</th><th>Nama</th><th>Nickname</th><th>ID</th><th>Role</th></tr></thead>
+      <tbody>${roster.map(p => `<tr><td class="num">${p.is_sub ? "S" : p.slot}</td>
+        <td>${esc(p.name)}${p.is_captain ? ' <span class="badge gold">Kapten</span>' : ""}</td>
+        <td>${esc(p.ign || "—")}</td><td class="mono small">${esc(p.ml_id || "—")}</td>
+        <td>${esc(p.is_sub ? "Cadangan" : p.role)}</td></tr>`).join("")}</tbody></table></div></div>`;
+}
+function renderTeams() {
+  const pending = TEAMS.filter(t => t.status === "pending"), approved = TEAMS.filter(t => t.status === "approved");
+  $("#pendingCount").textContent = pending.length + " menunggu";
+  $("#pendingList").innerHTML = pending.length ? pending.map(t => teamBlock(t,
+    `<button class="btn btn-sm" data-approve="${t.id}">Setujui</button>
+     <button class="btn btn-ghost btn-sm" data-reject="${t.id}">Tolak</button>
+     <button class="btn btn-ghost btn-sm" data-del="${t.id}">Hapus</button>`)).join("")
+    : `<div class="empty"><strong>Kotak masuk kosong</strong>Belum ada pendaftar baru.</div>`;
+  $("#approvedList").innerHTML = approved.length ? approved.map(t => teamBlock(t,
+    `<span class="badge mint">Terverifikasi</span>
+     <button class="btn btn-ghost btn-sm" data-reject="${t.id}">Cabut</button>
+     <button class="btn btn-ghost btn-sm" data-del="${t.id}">Hapus</button>`)).join("")
+    : `<div class="empty"><strong>Belum ada peserta</strong>Setujui tim di daftar atas untuk memulai.</div>`;
+}
+document.addEventListener("click", async e => {
+  const ap = e.target.closest("[data-approve]"), rj = e.target.closest("[data-reject]"), dl = e.target.closest("[data-del]");
+  if (ap) { await sb.from("teams").update({ status: "approved" }).eq("id", ap.dataset.approve); toast("Tim disetujui."); loadAll(); }
+  if (rj) { await sb.from("teams").update({ status: "rejected" }).eq("id", rj.dataset.reject); toast("Status tim dicabut.", "warn"); loadAll(); }
+  if (dl) {
+    if (!confirm("Hapus tim ini beserta roster dan seluruh pertandingannya?")) return;
+    await sb.from("teams").delete().eq("id", dl.dataset.del); toast("Tim dihapus.", "warn"); loadAll();
+  }
+});
+
+/* ---------- pengaturan ---------- */
+function renderSettings() {
+  const f = $("#settingsForm");
+  f.tournament_name.value = SETTINGS.tournament_name || "";
+  f.season.value = SETTINGS.season || "";
+  f.organizer.value = SETTINGS.organizer || "";
+  f.playoff_slots.value = String(SETTINGS.playoff_slots || 6);
+  f.registration_open.value = String(!!SETTINGS.registration_open);
+}
+$("#settingsForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const f = e.target;
+  const { error } = await sb.from("settings").update({
+    tournament_name: f.tournament_name.value.trim(), season: f.season.value.trim(),
+    organizer: f.organizer.value.trim(), playoff_slots: +f.playoff_slots.value,
+    registration_open: f.registration_open.value === "true", updated_at: new Date().toISOString()
+  }).eq("id", 1);
+  if (error) return toast(error.message, "err");
+  toast("Pengaturan tersimpan."); loadAll();
+});
+
+/* ---------- jadwal ---------- */
+$("#btnGenSchedule").addEventListener("click", async () => {
+  const ids = TEAMS.filter(t => t.status === "approved").map(t => t.id);
+  if (ids.length < 2) return toast("Butuh minimal dua tim terverifikasi.", "warn");
+  if (!confirm(`Buat jadwal untuk ${ids.length} tim? Jadwal dan skor babak reguler yang ada akan dihapus.`)) return;
+  const rows = [];
+  generateSchedule(ids).forEach(r => r.pairs.forEach(([h, a]) =>
+    rows.push({ round: r.round, leg: r.leg, home_team_id: h, away_team_id: a, best_of: 3 })));
+  await sb.from("matches").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+  const { error } = await sb.from("matches").insert(rows);
+  if (error) return toast(error.message, "err");
+  toast(`${rows.length} match dibuat.`); loadAll();
+});
+
+function localValue(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 16);
+}
+function renderSchedule() {
+  if (!MATCHES.length) {
+    $("#admSchedule").innerHTML = `<div class="empty"><strong>Jadwal kosong</strong>Klik "Buat ulang jadwal" setelah tim diverifikasi.</div>`;
+    return;
+  }
+  const rounds = [...new Set(MATCHES.map(m => m.round))].sort((a, b) => a - b);
+  $("#admSchedule").innerHTML = rounds.map(r => {
+    const ms = MATCHES.filter(m => m.round === r);
+    return `<div class="round-head">Ronde ${r} · ${ms[0].leg === 2 ? "tandang" : "kandang"}</div>` + ms.map(m => `
+      <div class="adm-match" data-match="${m.id}">
+        <div class="side">${logoHtml(teamById(m.home_team_id))}<span class="tname">${esc(nameOf(m.home_team_id))}</span></div>
+        <div class="center">
+          <input class="score-input" type="number" min="0" max="2" value="${m.home_score}" data-f="home">
+          <span class="muted">–</span>
+          <input class="score-input" type="number" min="0" max="2" value="${m.away_score}" data-f="away">
+        </div>
+        <div class="side away"><span class="tname">${esc(nameOf(m.away_team_id))}</span>${logoHtml(teamById(m.away_team_id))}</div>
+        <div class="tools">
+          <input type="datetime-local" style="width:196px" data-f="date" value="${localValue(m.scheduled_at)}">
+          <button class="btn btn-sm" data-save-match="${m.id}">Simpan</button>
+          ${m.status === "finished" ? `<span class="badge mint">Selesai</span>
+            <button class="btn btn-ghost btn-sm" data-open-match="${m.id}">Buka</button>` : ""}
+        </div></div>`).join("");
+  }).join("");
+}
+document.addEventListener("click", async e => {
+  const sv = e.target.closest("[data-save-match]"), op = e.target.closest("[data-open-match]");
+  if (op) {
+    await sb.from("matches").update({ status: "scheduled", home_score: 0, away_score: 0 }).eq("id", op.dataset.openMatch);
+    toast("Match dibuka kembali.", "warn"); return loadAll();
+  }
+  if (!sv) return;
+  const box = sv.closest(".adm-match");
+  const h = +$("[data-f=home]", box).value, a = +$("[data-f=away]", box).value, d = $("[data-f=date]", box).value;
+  const payload = { scheduled_at: d ? new Date(d).toISOString() : null };
+  if (h || a) {
+    if (!validScore(3, h, a)) return toast("Skor Bo3 harus 2–0 atau 2–1.", "warn");
+    Object.assign(payload, { home_score: h, away_score: a, status: "finished" });
+  } else Object.assign(payload, { home_score: 0, away_score: 0, status: "scheduled" });
+  const { error } = await sb.from("matches").update(payload).eq("id", sv.dataset.saveMatch);
+  if (error) return toast(error.message, "err");
+  toast("Hasil tersimpan."); loadAll();
+});
+
+/* ---------- bracket ---------- */
+$("#btnGenBracket").addEventListener("click", async () => {
+  const slots = +(SETTINGS.playoff_slots || 6), tpl = BRACKET_TEMPLATES[slots];
+  if (!tpl) return toast("Slot playoff harus 4 atau 6.", "warn");
+  if (STANDINGS.length < slots) return toast(`Butuh minimal ${slots} tim di klasemen.`, "warn");
+  if (!confirm(`Buat bracket untuk ${slots} tim teratas? Bracket lama beserta skornya dihapus.`)) return;
+  const seeds = STANDINGS.slice(0, slots).map(r => r.team.id);
+  await sb.from("bracket_matches").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+  const rows = tpl.map(t => ({ ...t, home_team_id: null, away_team_id: null, home_score: 0, away_score: 0, status: "scheduled" }));
+  resolveBracket(rows, seeds);
+  const { error } = await sb.from("bracket_matches").insert(rows);
+  if (error) return toast(error.message, "err");
+  await Promise.all(TEAMS.map(t => {
+    const i = seeds.indexOf(t.id);
+    return sb.from("teams").update({ seed: i >= 0 ? i + 1 : null }).eq("id", t.id);
+  }));
+  toast("Bracket dibuat."); loadAll();
+});
+
+async function syncBracketSlots() {
+  const { data } = await sb.from("bracket_matches").select("*").order("round").order("order_no");
+  const seeds = TEAMS.filter(t => t.seed).sort((a, b) => a.seed - b.seed).map(t => t.id);
+  const changed = resolveBracket(data || [], seeds);
+  await Promise.all(changed.map(b => sb.from("bracket_matches")
+    .update({ home_team_id: b.home_team_id, away_team_id: b.away_team_id }).eq("id", b.id)));
+}
+
+function renderBracket() {
+  const seeded = TEAMS.filter(t => t.seed).sort((a, b) => a.seed - b.seed);
+  const preview = seeded.length ? seeded : STANDINGS.slice(0, SETTINGS.playoff_slots || 6).map((r, i) => ({ ...r.team, seed: i + 1 }));
+  $("#seedPreview").innerHTML = preview.length
+    ? preview.map(t => `<span class="badge ${t.seed <= 2 ? "gold" : "violet"}">#${t.seed} ${esc(t.name)}</span>`).join("")
+    : `<span class="muted small">Klasemen masih kosong.</span>`;
+
+  if (!BRACKET.length) {
+    $("#admBracket").innerHTML = `<div class="empty"><strong>Bracket belum dibuat</strong>Selesaikan babak reguler, lalu klik "Buat ulang bracket".</div>`;
+    return;
+  }
+  const order = { upper: 1, lower: 2, grand: 3 };
+  const list = [...BRACKET].sort((a, b) => order[a.stage] - order[b.stage] || a.round - b.round || a.order_no - b.order_no);
+  let last = "";
+  $("#admBracket").innerHTML = list.map(b => {
+    const head = b.stage !== last ? `<div class="round-head">${{ upper: "Upper bracket", lower: "Lower bracket", grand: "Grand final" }[b.stage]}</div>` : "";
+    last = b.stage;
+    const ready = b.home_team_id && b.away_team_id;
+    return head + `<div class="adm-match" data-bm="${b.id}" data-bo="${b.best_of}">
+      <div class="side">${logoHtml(teamById(b.home_team_id))}<span class="tname">${esc(nameOf(b.home_team_id))}</span></div>
+      <div class="center">
+        <input class="score-input" type="number" min="0" max="3" value="${b.home_score}" data-f="home" ${ready ? "" : "disabled"}>
+        <span class="muted">–</span>
+        <input class="score-input" type="number" min="0" max="3" value="${b.away_score}" data-f="away" ${ready ? "" : "disabled"}>
+      </div>
+      <div class="side away"><span class="tname">${esc(nameOf(b.away_team_id))}</span>${logoHtml(teamById(b.away_team_id))}</div>
+      <div class="tools">
+        <span class="badge">${esc(b.label)} · Bo${b.best_of}</span>
+        <button class="btn btn-sm" data-save-bm="${b.id}" ${ready ? "" : "disabled"}>Simpan</button>
+        ${b.status === "finished" ? `<button class="btn btn-ghost btn-sm" data-open-bm="${b.id}">Buka</button>` : ""}
+      </div></div>`;
+  }).join("");
+}
+
+document.addEventListener("click", async e => {
+  const sv = e.target.closest("[data-save-bm]"), op = e.target.closest("[data-open-bm]");
+  if (op) {
+    await sb.from("bracket_matches").update({ status: "scheduled", home_score: 0, away_score: 0 }).eq("id", op.dataset.openBm);
+    await syncBracketSlots(); toast("Match dibuka kembali.", "warn"); return loadAll();
+  }
+  if (!sv) return;
+  const box = sv.closest(".adm-match"), bo = +box.dataset.bo;
+  const h = +$("[data-f=home]", box).value, a = +$("[data-f=away]", box).value;
+  if (!validScore(bo, h, a)) return toast(`Skor Bo${bo}: pemenang harus mencapai ${Math.ceil(bo / 2)} game.`, "warn");
+  const { error } = await sb.from("bracket_matches").update({ home_score: h, away_score: a, status: "finished" }).eq("id", sv.dataset.saveBm);
+  if (error) return toast(error.message, "err");
+  await syncBracketSlots();
+  toast("Hasil tersimpan, bracket diperbarui."); loadAll();
+});
+
+boot();
+sb.auth.onAuthStateChange((_e, session) => { if (!session) { $("#loginShell").hidden = false; $("#app").hidden = true; } });
+</script>
+</body>
+</html>
