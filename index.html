@@ -24,6 +24,7 @@
   --r:3px; --shadow:0 24px 60px -30px #000;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html{scroll-behavior:smooth}
 body{
   margin:0;background:var(--void);color:var(--ink);
@@ -123,6 +124,48 @@ h3{font-size:21px;letter-spacing:.03em}
 }
 @keyframes spin{to{transform:rotate(360deg)}}
 @media(max-width:900px){.rune{right:-180px;opacity:.3}}
+
+/* ---------- panggung animasi ---------- */
+.hero-art{position:absolute;inset:-40px 0 -60px;z-index:-1;pointer-events:none;overflow:hidden;
+  mask-image:linear-gradient(180deg,#000 62%,transparent 100%)}
+#fxCanvas{position:absolute;inset:0;width:100%;height:100%}
+.scene{position:absolute;inset:0;width:100%;height:100%}
+.lyr{will-change:transform}
+.far{animation:driftFar 26s ease-in-out infinite alternate}
+.mid{animation:driftMid 19s ease-in-out infinite alternate}
+@keyframes driftFar{to{transform:translate3d(-22px,6px,0)}}
+@keyframes driftMid{to{transform:translate3d(16px,-5px,0)}}
+
+.champion{animation:bob 6s ease-in-out infinite;transform-box:fill-box;transform-origin:center bottom}
+@keyframes bob{50%{transform:translateY(-14px)}}
+.cape{transform-box:fill-box;transform-origin:50% 0;animation:sway 5.2s ease-in-out infinite}
+@keyframes sway{0%,100%{transform:skewX(0deg) scaleY(1)}50%{transform:skewX(-5deg) scaleY(1.03)}}
+.halo{animation:breathe 5s ease-in-out infinite}
+@keyframes breathe{50%{opacity:.45;transform:scale(1.08)}}
+.blade{animation:blade 3.4s ease-in-out infinite}
+@keyframes blade{0%,100%{opacity:.75}50%{opacity:1}}
+.orb{animation:orbit 14s linear infinite;transform-box:fill-box;transform-origin:600px 330px}
+@keyframes orbit{to{transform:rotate(360deg)}}
+.mist{animation:mist 17s ease-in-out infinite alternate}
+@keyframes mist{to{transform:translateX(70px);opacity:.5}}
+@media(max-width:900px){.champion,.orb{display:none}.hero-art{inset:-20px 0 -30px;opacity:.85}}
+
+/* sapuan kilau pada judul */
+.hero h1 .tail{position:relative;background:var(--grad-gold);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero h1 .tail::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(105deg,transparent 38%,rgba(255,255,255,.75) 50%,transparent 62%);
+  background-size:260% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;
+  animation:shimmer 5.5s ease-in-out 1.1s infinite}
+@keyframes shimmer{0%{background-position:180% 0}55%,100%{background-position:-90% 0}}
+
+/* huruf judul masuk satu per satu */
+.hero h1 .ch{display:inline-block;opacity:0;transform:translateY(28px) rotate(4deg);animation:letter .62s cubic-bezier(.2,.9,.3,1) forwards}
+@keyframes letter{to{opacity:1;transform:none}}
+
+/* muncul saat digulir */
+[data-reveal]{opacity:0;transform:translateY(22px);transition:opacity .7s cubic-bezier(.2,.8,.3,1),transform .7s cubic-bezier(.2,.8,.3,1)}
+[data-reveal].in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){[data-reveal]{opacity:1;transform:none}.hero h1 .ch{opacity:1;transform:none;animation:none}}
 .hero h1{font-size:clamp(50px,10.5vw,120px);letter-spacing:-.005em}
 .hero h1 .tail{display:block;background:var(--grad-gold);-webkit-background-clip:text;background-clip:text;color:transparent}
 .hero .lead{max-width:48ch;color:var(--muted);margin:20px 0 30px;font-size:16.5px}
@@ -168,7 +211,7 @@ select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,va
   background-position:calc(100% - 17px) 50%,calc(100% - 12px) 50%;background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:34px}
 option{background:var(--night)}
 
-.player-row{display:grid;grid-template-columns:38px 1.3fr 1fr 1fr 150px;gap:10px;align-items:end;padding:14px 0;border-top:1px solid var(--line-soft)}
+.player-row{display:grid;grid-template-columns:38px 1.4fr 1.1fr 170px;gap:12px;align-items:end;padding:14px 0;border-top:1px solid var(--line-soft)}
 .player-row .slot-no{font-family:var(--display);font-size:26px;color:var(--line);line-height:1;padding-bottom:9px;text-align:center}
 .player-row.is-cap .slot-no{color:var(--gold)}
 .player-row .field{margin:0}
@@ -320,7 +363,55 @@ footer.site{border-top:1px solid var(--line-soft);padding:30px 0;color:var(--dim
 <section class="page active" id="page-home">
   <div class="wrap">
     <div class="hero">
-      <div class="rune"></div>
+      <div class="hero-art" aria-hidden="true">
+        <canvas id="fxCanvas"></canvas>
+        <svg class="scene" viewBox="0 0 1200 620" preserveAspectRatio="xMidYMax slice">
+          <defs>
+            <linearGradient id="gBlade" x1="0" y1="1" x2="0" y2="0">
+              <stop offset="0" stop-color="#FF8A3D"/><stop offset=".6" stop-color="#F5C451"/><stop offset="1" stop-color="#FFF3D0"/>
+            </linearGradient>
+            <radialGradient id="gHalo">
+              <stop offset="0" stop-color="#F5C451" stop-opacity=".55"/><stop offset="1" stop-color="#F5C451" stop-opacity="0"/>
+            </radialGradient>
+            <linearGradient id="gMist" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stop-color="#9B7BFF" stop-opacity="0"/><stop offset=".5" stop-color="#9B7BFF" stop-opacity=".22"/>
+              <stop offset="1" stop-color="#9B7BFF" stop-opacity="0"/>
+            </linearGradient>
+            <filter id="glow" x="-70%" y="-70%" width="240%" height="240%">
+              <feGaussianBlur stdDeviation="9" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+
+          <g class="lyr far" opacity=".85">
+            <path d="M0 452 L110 336 L176 404 L288 292 L392 420 L512 348 L636 442 L764 318 L884 432 L1008 356 L1124 444 L1200 396 L1200 620 L0 620Z" fill="#1A1236"/>
+            <circle class="orb" cx="600" cy="150" r="4" fill="#F5C451" opacity=".8"/>
+            <circle class="orb" cx="600" cy="120" r="3" fill="#9B7BFF" opacity=".7" style="animation-duration:20s"/>
+          </g>
+
+          <ellipse class="mist" cx="520" cy="512" rx="520" ry="46" fill="url(#gMist)"/>
+
+          <g class="lyr mid">
+            <path d="M0 522 L136 430 L262 502 L382 418 L520 508 L662 438 L804 512 L952 428 L1082 502 L1200 448 L1200 620 L0 620Z" fill="#130D28"/>
+            <path d="M180 470 l14 -34 14 34z" fill="#2E2260"/><path d="M700 486 l12 -28 12 28z" fill="#2E2260"/>
+          </g>
+
+          <g class="champion" transform="translate(946,196)">
+            <ellipse class="halo" cx="0" cy="150" rx="168" ry="168" fill="url(#gHalo)"/>
+            <g class="cape"><path d="M-16 6 L44 26 L74 300 L-58 300 L-34 20 Z" fill="#241A4C"/></g>
+            <path d="M-24 0 L24 0 L38 96 L30 300 L-30 300 L-38 96 Z" fill="#0C0819"/>
+            <circle cx="0" cy="-24" r="24" fill="#0C0819"/>
+            <path d="M-20 -40 L0 -70 L20 -40 Z" fill="#F5C451" opacity=".9"/>
+            <rect x="22" y="10" width="14" height="92" rx="7" fill="#0C0819"/>
+            <g class="blade" filter="url(#glow)">
+              <rect x="36" y="-186" width="11" height="212" rx="5" fill="url(#gBlade)"/>
+            </g>
+            <rect x="22" y="22" width="40" height="9" rx="4" fill="#7A5C22"/>
+          </g>
+
+          <path d="M0 596 L1200 596 L1200 620 L0 620Z" fill="#0B0817"/>
+        </svg>
+        <div class="rune"></div>
+      </div>
       <p class="eyebrow reveal" id="heroSeason">Season 1</p>
       <h1 class="reveal" id="heroTitle">Turnamen<span class="tail">Mobile Legends</span></h1>
       <p class="lead reveal">Liga penuh, semua tim saling bertemu dua kali — kandang dan tandang, Best of 3.
@@ -342,19 +433,19 @@ footer.site{border-top:1px solid var(--line-soft);padding:30px 0;color:var(--dim
 
   <div class="wrap" style="padding:56px 0 96px">
     <div class="grid g3">
-      <div class="card">
+      <div class="card" data-reveal>
         <p class="eyebrow">Babak reguler</p>
         <h3 style="margin:12px 0 8px">Double round robin</h3>
         <p class="muted small" style="margin:0">Setiap tim bertemu semua lawan dua kali. Satu match adalah seri Best of 3:
           menang seri dapat 1 Match Point, kalah 0.</p>
       </div>
-      <div class="card">
+      <div class="card" data-reveal>
         <p class="eyebrow">Penentu</p>
         <h3 style="margin:12px 0 8px">Net Game Win</h3>
         <p class="muted small" style="margin:0">Poin sama? Selisih game menang dikurangi game kalah yang bicara.
           Masih imbang juga, hasil pertemuan langsung yang memutuskan.</p>
       </div>
-      <div class="card">
+      <div class="card" data-reveal>
         <p class="eyebrow">Puncak</p>
         <h3 style="margin:12px 0 8px">Double elimination</h3>
         <p class="muted small" style="margin:0">Peringkat 1–2 masuk upper bracket ronde dua. Peringkat 3–6 mulai dari ronde satu.
@@ -383,7 +474,7 @@ footer.site{border-top:1px solid var(--line-soft);padding:30px 0;color:var(--dim
       <label class="field"><span>Singkatan tim</span><input name="tag" maxlength="8" placeholder="NAE"></label>
     </div>
     <div class="grid g3">
-      <label class="field"><span>Cabang / divisi</span><input name="division" maxlength="40" placeholder="Umum"></label>
+      <label class="field"><span>Cabang / divisi</span><input name="division" maxlength="40" placeholder="KLINKLIN GRESIK"></label>
       <label class="field"><span>WhatsApp kapten *</span><input name="captain_wa" required maxlength="24" placeholder="08xxxxxxxxxx"></label>
       <label class="field"><span>URL logo (opsional)</span><input name="logo_url" type="url" placeholder="https://…"></label>
     </div>
@@ -464,7 +555,7 @@ footer.site{border-top:1px solid var(--line-soft);padding:30px 0;color:var(--dim
 <section class="page" id="page-aturan"><div class="wrap">
   <div class="sec-head"><div class="grow"><p class="eyebrow">Regulasi</p><h2>Cara peringkat dihitung</h2></div></div>
   <div class="grid g2">
-    <div class="card">
+    <div class="card" data-reveal>
       <h3>Komponen klasemen</h3>
       <ul class="rule-list">
         <li><b>Match Point</b> — tiap seri Best of 3 yang dimenangkan bernilai +1 poin, kalah 0 poin.</li>
@@ -473,7 +564,7 @@ footer.site{border-top:1px solid var(--line-soft);padding:30px 0;color:var(--dim
         <li><b>Game W-L</b> — rincian menang-kalah game sepanjang babak reguler.</li>
       </ul>
     </div>
-    <div class="card">
+    <div class="card" data-reveal>
       <h3>Urutan penentuan</h3>
       <ul class="rule-list">
         <li><b>Match Point terbesar</b> menempati posisi teratas.</li>
@@ -481,7 +572,7 @@ footer.site{border-top:1px solid var(--line-soft);padding:30px 0;color:var(--dim
         <li><b>Head-to-head</b> dipakai saat keduanya masih sama; tim yang diurutkan lewat cara ini diberi tanda H2H.</li>
       </ul>
     </div>
-    <div class="card">
+    <div class="card" data-reveal>
       <h3>Jalur ke playoff</h3>
       <ul class="rule-list">
         <li><b>Peringkat 1–2</b> — langsung ke upper bracket ronde dua.</li>
@@ -489,7 +580,7 @@ footer.site{border-top:1px solid var(--line-soft);padding:30px 0;color:var(--dim
         <li><b>Peringkat 7 ke bawah</b> — tereliminasi.</li>
       </ul>
     </div>
-    <div class="card">
+    <div class="card" data-reveal>
       <h3>Cara kerja bracket</h3>
       <ul class="rule-list">
         <li><b>Upper bracket</b> — menang lanjut, kalah turun ke lower bracket.</li>
@@ -719,17 +810,34 @@ async function loadAll() {
   renderStandings(); renderSchedule(); renderBracket();
 }
 
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function splitLetters(text) {
+  return [...text].map((c, i) => c === " " ? " "
+    : `<span class="ch" style="animation-delay:${(0.22 + i * 0.045).toFixed(2)}s">${esc(c)}</span>`).join("");
+}
+function countTo(el, target) {
+  const from = +el.textContent || 0;
+  if (REDUCED || from === target) { el.textContent = target; return; }
+  const t0 = performance.now(), dur = 850;
+  (function step(t) {
+    const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+    el.textContent = Math.round(from + (target - from) * e);
+    if (k < 1) requestAnimationFrame(step);
+  })(t0);
+}
+
 function renderHeader() {
   const name = SETTINGS.tournament_name || "Turnamen Mobile Legends";
   document.title = name;
   $("#brandName").textContent = name;
   $("#heroSeason").textContent = SETTINGS.season || "Season 1";
   const parts = name.split(" ");
-  $("#heroTitle").innerHTML = `${esc(parts[0])}<span class="tail">${esc(parts.slice(1).join(" ") || "Championship")}</span>`;
-  $("#stTeams").textContent = TEAMS.filter(t => t.status === "approved").length;
-  $("#stMatches").textContent = MATCHES.length;
-  $("#stDone").textContent = MATCHES.filter(m => m.status === "finished").length;
-  $("#stStatus").textContent = SETTINGS.registration_open ? "Buka" : "Tutup";
+  $("#heroTitle").innerHTML = `${REDUCED ? esc(parts[0]) : splitLetters(parts[0])}<span class="tail">${esc(parts.slice(1).join(" ") || "Championship")}</span>`;
+  countTo($("#stTeams"), TEAMS.filter(t => t.status === "approved").length);
+  countTo($("#stMatches"), MATCHES.length);
+  countTo($("#stDone"), MATCHES.filter(m => m.status === "finished").length);
+  $("#stStatus").textContent = MATCHES.length ? "Berjalan" : SETTINGS.registration_open ? "Buka" : "Tutup";
   if (SETTINGS.organizer) $("#footOrg").textContent = "Diselenggarakan oleh " + SETTINGS.organizer + ".";
 }
 
@@ -752,7 +860,6 @@ function playerRow(i, isSub) {
     <div class="slot-no">${isSub ? "S" : String(i).padStart(2, "0")}</div>
     <label class="field"><span>Nama lengkap ${i === 1 && !isSub ? "· kapten" : ""}</span><input name="pname" ${isSub ? "" : "required"} maxlength="60"></label>
     <label class="field"><span>Nickname in-game</span><input name="pign" maxlength="40"></label>
-    <label class="field"><span>ID (server)</span><input name="pid" maxlength="30" placeholder="12345678 (2001)"></label>
     <label class="field"><span>Role</span><select name="prole">${ROLES.map(r => `<option>${esc(r)}</option>`).join("")}</select></label>
   </div>`;
 }
@@ -766,9 +873,17 @@ $("#addSub").addEventListener("click", () => {
   $("#playerRows").insertAdjacentHTML("beforeend", playerRow(6 + subs, true));
 });
 function renderRegState() {
-  const open = !!SETTINGS.registration_open, sent = !$("#regDone").hidden;
-  $("#regBadge").innerHTML = open ? `<span class="pulse"></span>Dibuka` : "Ditutup";
+  const started = MATCHES.length > 0;
+  const open = !!SETTINGS.registration_open && !started;
+  const sent = !$("#regDone").hidden;
+  $("#regBadge").innerHTML = open ? `<span class="pulse"></span>Dibuka` : started ? "Turnamen berjalan" : "Ditutup";
   $("#regBadge").className = "badge " + (open ? "mint" : "flame");
+  $("#regClosed").innerHTML = started
+    ? `<strong>Babak reguler sudah berjalan</strong>
+       Jadwal untuk ${TEAMS.filter(t => t.status === "approved").length} tim sudah tersusun, jadi peserta baru tidak bisa ditambahkan lagi.
+       Ikuti jalannya pertandingan lewat menu Klasemen dan Jadwal.`
+    : `<strong>Pendaftaran ditutup</strong>
+       Panitia sedang tidak menerima tim baru. Pantau halaman ini untuk gelombang berikutnya.`;
   $("#regForm").hidden = !open || sent;
   $("#regClosed").hidden = open || sent;
 }
@@ -779,7 +894,7 @@ $("#regForm").addEventListener("submit", async e => {
   const players = $$("#playerRows .player-row").map(r => ({
     slot: +r.dataset.slot, is_sub: r.dataset.sub === "1",
     name: $("[name=pname]", r).value.trim(), ign: $("[name=pign]", r).value.trim(),
-    ml_id: $("[name=pid]", r).value.trim(), role: $("[name=prole]", r).value
+    role: $("[name=prole]", r).value
   })).filter(p => p.name);
 
   if (players.filter(p => !p.is_sub).length < 5) return toast("Lengkapi lima pemain inti dulu.", "warn");
@@ -923,6 +1038,63 @@ function renderBracket() {
     }).join("");
   } else $("#podium").hidden = true;
 }
+
+/* ---------- bara api di latar hero ---------- */
+(function embers() {
+  const c = $("#fxCanvas");
+  if (!c || REDUCED) return;
+  const ctx = c.getContext("2d"), dpr = Math.min(devicePixelRatio || 1, 2);
+  let w = 0, h = 0, parts = [];
+  const mk = () => ({
+    x: Math.random() * w, y: h + Math.random() * h * .6,
+    r: (Math.random() * 1.7 + .5) * dpr, s: (Math.random() * .34 + .12) * dpr,
+    a: Math.random() * .45 + .2, p: Math.random() * 6.28, violet: Math.random() < .32
+  });
+  function resize() {
+    const r = c.getBoundingClientRect();
+    w = c.width = Math.max(1, r.width * dpr); h = c.height = Math.max(1, r.height * dpr);
+    parts = Array.from({ length: Math.min(88, Math.max(26, Math.round(w * h / (34000 * dpr)))) }, mk);
+  }
+  function frame() {
+    ctx.clearRect(0, 0, w, h);
+    for (const q of parts) {
+      q.y -= q.s; q.p += .012; q.x += Math.sin(q.p) * .38 * dpr;
+      if (q.y < -12) { Object.assign(q, mk()); q.y = h + 12; }
+      ctx.beginPath(); ctx.arc(q.x, q.y, q.r, 0, 6.284);
+      ctx.fillStyle = `rgba(${q.violet ? "155,123,255" : "245,196,81"},${(q.a * (.55 + .45 * Math.sin(q.p * 2))).toFixed(3)})`;
+      ctx.fill();
+    }
+    requestAnimationFrame(frame);
+  }
+  addEventListener("resize", resize, { passive: true });
+  resize(); frame();
+})();
+
+/* ---------- parallaks mengikuti kursor ---------- */
+(function parallax() {
+  const hero = $(".hero"), scene = $(".scene");
+  if (!hero || !scene || REDUCED) return;
+  hero.addEventListener("pointermove", e => {
+    const r = hero.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width - .5, y = (e.clientY - r.top) / r.height - .5;
+    scene.style.transform = `translate3d(${(x * -20).toFixed(1)}px,${(y * -12).toFixed(1)}px,0) scale(1.035)`;
+  }, { passive: true });
+  hero.addEventListener("pointerleave", () => scene.style.transform = "");
+  scene.style.transition = "transform .5s cubic-bezier(.2,.8,.3,1)";
+})();
+
+/* ---------- muncul saat digulir ---------- */
+(function reveals() {
+  const els = $$("[data-reveal]");
+  if (!els.length) return;
+  if (REDUCED || !("IntersectionObserver" in window)) return els.forEach(el => el.classList.add("in"));
+  const io = new IntersectionObserver(entries => entries.forEach((en, i) => {
+    if (!en.isIntersecting) return;
+    setTimeout(() => en.target.classList.add("in"), i * 90);
+    io.unobserve(en.target);
+  }), { threshold: .18 });
+  els.forEach(el => io.observe(el));
+})();
 
 /* ---------- mulai ---------- */
 buildForm();
