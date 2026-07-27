@@ -123,16 +123,34 @@ td.num,th.num{text-align:center;font-family:var(--mono)}
 
 <!-- ---------- LOGIN ---------- -->
 <div class="login-shell" id="loginShell">
-  <form class="card login-card" id="loginForm">
-    <div class="crest" style="margin-bottom:16px"></div>
-    <p class="eyebrow">Panel panitia</p>
-    <h2 style="margin:10px 0 20px">Masuk</h2>
-    <label class="field"><span>Email</span><input name="email" type="email" required autocomplete="username"></label>
-    <label class="field"><span>Kata sandi</span><input name="password" type="password" required autocomplete="current-password"></label>
-    <button class="btn" style="width:100%" id="loginBtn">Masuk</button>
-    <p class="muted small" style="margin-top:16px">Akun dibuat di Supabase Dashboard → Authentication → Users → Add user.
-      <a href="index.html">Kembali ke halaman turnamen</a>.</p>
-  </form>
+  <div class="login-card">
+    <form class="card" id="loginForm">
+      <div class="crest" style="margin-bottom:16px"></div>
+      <p class="eyebrow">Panel panitia</p>
+      <h2 style="margin:10px 0 20px">Masuk</h2>
+      <label class="field"><span>Email</span><input name="email" type="email" required autocomplete="username"></label>
+      <label class="field"><span>Kata sandi</span><input name="password" type="password" required autocomplete="current-password"></label>
+      <button class="btn" style="width:100%" id="loginBtn">Masuk</button>
+      <div class="row" style="margin-top:14px">
+        <button type="button" class="btn btn-ghost btn-sm" id="btnDiag">Uji koneksi</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="btnReset">Kirim tautan kata sandi</button>
+      </div>
+      <p class="muted small" style="margin-top:14px">Akun dibuat di Supabase Dashboard → Authentication → Users → Add user →
+        Create new user. <a href="index.html">Kembali ke halaman turnamen</a>.</p>
+    </form>
+
+    <div class="card" id="diag" hidden style="margin-top:16px">
+      <p class="eyebrow">Hasil pemeriksaan</p>
+      <div id="diagBody" style="margin-top:8px"></div>
+    </div>
+
+    <form class="card" id="pwForm" hidden>
+      <p class="eyebrow">Atur ulang</p>
+      <h2 style="margin:10px 0 20px">Buat kata sandi baru</h2>
+      <label class="field"><span>Kata sandi baru</span><input name="password" type="password" minlength="6" required autocomplete="new-password"></label>
+      <button class="btn" style="width:100%">Simpan kata sandi</button>
+    </form>
+  </div>
 </div>
 
 <!-- ---------- PANEL ---------- -->
@@ -363,16 +381,82 @@ function logoHtml(t) {
 /* ---------- auth ---------- */
 $("#loginForm").addEventListener("submit", async e => {
   e.preventDefault();
+  if (SUPABASE_URL.includes("xxxx")) return toast("Kredensial Supabase di file admin.html belum diisi.", "err");
   const btn = $("#loginBtn"); btn.disabled = true; btn.textContent = "Memeriksa…";
   const { error } = await sb.auth.signInWithPassword({ email: e.target.email.value.trim(), password: e.target.password.value });
   btn.disabled = false; btn.textContent = "Masuk";
-  if (error) return toast("Email atau kata sandi tidak cocok.", "err");
+  if (error) {
+    const m = (error.message || "").toLowerCase();
+    if (m.includes("invalid login")) toast("Email atau kata sandi tidak cocok.", "err");
+    else if (m.includes("email not confirmed")) toast("Email belum dikonfirmasi. Di Supabase, buka user itu lalu pilih Confirm email.", "err");
+    else if (m.includes("email logins are disabled") || m.includes("provider")) toast("Login email dimatikan di Supabase. Aktifkan Authentication → Providers → Email.", "err");
+    else if (m.includes("failed to fetch")) toast("Tidak bisa menghubungi Supabase. Cek Project URL dan koneksi internet.", "err");
+    else toast("Gagal masuk: " + error.message, "err");
+    return;
+  }
   boot();
 });
 $("#btnLogout").addEventListener("click", async () => { await sb.auth.signOut(); location.reload(); });
 
+/* ---------- diagnosa ---------- */
+$("#btnDiag").addEventListener("click", async () => {
+  const rows = [];
+  const add = (ok, label, detail = "") => rows.push(`<div class="step">
+    <span class="n" style="color:${ok ? "var(--mint)" : "var(--flame)"}">${ok ? "OK" : "!!"}</span>
+    <span class="small"><b>${label}</b>${detail ? `<br><span class="muted">${esc(detail)}</span>` : ""}</span></div>`);
+
+  add(!!window.supabase, "Pustaka Supabase termuat",
+    window.supabase ? "" : "Gagal ambil dari CDN — cek internet atau pemblokir iklan");
+  add(!SUPABASE_URL.includes("xxxx"), "Project URL terisi", SUPABASE_URL);
+  add(SUPABASE_ANON_KEY.length > 20, "Kunci publik terisi", SUPABASE_ANON_KEY.slice(0, 14) + "…");
+
+  try {
+    const { error } = await sb.from("settings").select("id").limit(1);
+    if (error) add(false, "Baca tabel settings", error.message);
+    else add(true, "Baca tabel settings", "database terhubung, skema sudah jalan");
+  } catch (e) { add(false, "Baca tabel settings", e.message); }
+
+  const email = $("#loginForm").email.value.trim();
+  if (email) {
+    const { error } = await sb.auth.signInWithPassword({ email, password: "___uji_koneksi_bukan_sandi___" });
+    const m = (error?.message || "").toLowerCase();
+    if (m.includes("invalid login")) add(true, "Endpoint Auth menjawab", "Login email aktif. Kalau tetap gagal, kata sandi akun ini yang belum cocok.");
+    else if (m.includes("email not confirmed")) add(false, "Email belum dikonfirmasi", "Buka user itu di Supabase lalu pilih Confirm email");
+    else if (m.includes("disabled")) add(false, "Login email dimatikan", error.message);
+    else if (error) add(false, "Endpoint Auth", error.message);
+    else add(false, "Endpoint Auth", "Kata sandi uji malah diterima — segera ganti kata sandi akun ini");
+  } else add(false, "Email belum diisi", "Isi kolom email dulu supaya bisa ikut diperiksa");
+
+  $("#diagBody").innerHTML = rows.join("");
+  $("#diag").hidden = false;
+});
+
+/* ---------- atur ulang kata sandi ---------- */
+$("#btnReset").addEventListener("click", async () => {
+  const email = $("#loginForm").email.value.trim();
+  if (!email) return toast("Isi kolom email dulu.", "warn");
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.href.split("#")[0] });
+  if (error) return toast("Gagal mengirim: " + error.message, "err");
+  toast("Tautan terkirim. Cek kotak masuk email itu, lalu buka tautannya dari perangkat ini.");
+});
+
+$("#pwForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const { error } = await sb.auth.updateUser({ password: e.target.password.value });
+  if (error) return toast("Gagal menyimpan: " + error.message, "err");
+  toast("Kata sandi tersimpan.");
+  history.replaceState(null, "", location.pathname);
+  $("#pwForm").hidden = true; boot();
+});
+
 async function boot() {
+  const recovery = location.hash.includes("type=recovery");
   const { data } = await sb.auth.getSession();
+  if (recovery) {
+    $("#loginShell").hidden = false; $("#app").hidden = true;
+    $("#loginForm").hidden = true; $("#diag").hidden = true; $("#pwForm").hidden = false;
+    return;
+  }
   if (!data.session) { $("#loginShell").hidden = false; $("#app").hidden = true; return; }
   $("#loginShell").hidden = true; $("#app").hidden = false;
   $("#whoami").textContent = "Masuk sebagai " + data.session.user.email;
