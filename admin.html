@@ -17,6 +17,7 @@
   --r:3px;--shadow:0 24px 60px -30px #000;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 body{margin:0;background:var(--void);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased}
 body::before{content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;
   background:radial-gradient(700px 480px at 10% -6%,rgba(120,70,220,.34),transparent 62%),
@@ -494,10 +495,10 @@ function teamBlock(t, actions) {
         <div class="ttag">${esc(t.tag || "—")}${t.division ? " · " + esc(t.division) : ""} · WA ${esc(t.captain_wa || "—")}</div></div>
       <div class="row" style="margin-left:auto">${actions}</div></div>
     <div class="table-scroll" style="margin-top:14px">
-      <table><thead><tr><th class="num">#</th><th>Nama</th><th>Nickname</th><th>ID</th><th>Role</th></tr></thead>
+      <table><thead><tr><th class="num">#</th><th>Nama</th><th>Nickname</th><th>Role</th></tr></thead>
       <tbody>${roster.map(p => `<tr><td class="num">${p.is_sub ? "S" : p.slot}</td>
         <td>${esc(p.name)}${p.is_captain ? ' <span class="badge gold">Kapten</span>' : ""}</td>
-        <td>${esc(p.ign || "—")}</td><td class="mono small">${esc(p.ml_id || "—")}</td>
+        <td>${esc(p.ign || "—")}</td>
         <td>${esc(p.is_sub ? "Cadangan" : p.role)}</td></tr>`).join("")}</tbody></table></div></div>`;
 }
 function renderTeams() {
@@ -556,7 +557,8 @@ $("#btnGenSchedule").addEventListener("click", async () => {
   await sb.from("matches").delete().neq("id", "00000000-0000-0000-0000-000000000000");
   const { error } = await sb.from("matches").insert(rows);
   if (error) return toast(error.message, "err");
-  toast(`${rows.length} match dibuat.`); loadAll();
+  await sb.from("settings").update({ registration_open: false }).eq("id", 1);
+  toast(`${rows.length} match dibuat. Pendaftaran ditutup otomatis.`); loadAll();
 });
 
 function localValue(iso) {
