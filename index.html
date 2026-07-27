@@ -167,19 +167,11 @@ h3{font-size:21px;letter-spacing:.03em}
 @keyframes driftFar{to{transform:translate3d(-22px,6px,0)}}
 @keyframes driftMid{to{transform:translate3d(16px,-5px,0)}}
 
-.champion{animation:bob 6s ease-in-out infinite;transform-box:fill-box;transform-origin:center bottom}
-@keyframes bob{50%{transform:translateY(-14px)}}
-.cape{transform-box:fill-box;transform-origin:50% 0;animation:sway 5.2s ease-in-out infinite}
-@keyframes sway{0%,100%{transform:skewX(0deg) scaleY(1)}50%{transform:skewX(-5deg) scaleY(1.03)}}
-.halo{animation:breathe 5s ease-in-out infinite}
-@keyframes breathe{50%{opacity:.45;transform:scale(1.08)}}
-.blade{animation:blade 3.4s ease-in-out infinite}
-@keyframes blade{0%,100%{opacity:.75}50%{opacity:1}}
 .orb{animation:orbit 14s linear infinite;transform-box:fill-box;transform-origin:600px 330px}
 @keyframes orbit{to{transform:rotate(360deg)}}
 .mist{animation:mist 17s ease-in-out infinite alternate}
 @keyframes mist{to{transform:translateX(70px);opacity:.5}}
-@media(max-width:900px){.champion,.orb{display:none}.hero-art{inset:-20px 0 -30px;opacity:.85}}
+@media(max-width:900px){.orb{display:none}.hero-art{inset:-20px 0 -30px;opacity:.85}}
 
 /* sapuan kilau pada judul */
 .hero h1 .tail{position:relative;background:var(--grad-gold);-webkit-background-clip:text;background-clip:text;color:transparent}
@@ -428,19 +420,6 @@ footer.site{border-top:1px solid var(--line-soft);padding:30px 0;color:var(--dim
           <g class="lyr mid">
             <path d="M0 522 L136 430 L262 502 L382 418 L520 508 L662 438 L804 512 L952 428 L1082 502 L1200 448 L1200 620 L0 620Z" fill="#130D28"/>
             <path d="M180 470 l14 -34 14 34z" fill="#2E2260"/><path d="M700 486 l12 -28 12 28z" fill="#2E2260"/>
-          </g>
-
-          <g class="champion" transform="translate(946,196)">
-            <ellipse class="halo" cx="0" cy="150" rx="168" ry="168" fill="url(#gHalo)"/>
-            <g class="cape"><path d="M-16 6 L44 26 L74 300 L-58 300 L-34 20 Z" fill="#241A4C"/></g>
-            <path d="M-24 0 L24 0 L38 96 L30 300 L-30 300 L-38 96 Z" fill="#0C0819"/>
-            <circle cx="0" cy="-24" r="24" fill="#0C0819"/>
-            <path d="M-20 -40 L0 -70 L20 -40 Z" fill="#F5C451" opacity=".9"/>
-            <rect x="22" y="10" width="14" height="92" rx="7" fill="#0C0819"/>
-            <g class="blade" filter="url(#glow)">
-              <rect x="36" y="-186" width="11" height="212" rx="5" fill="url(#gBlade)"/>
-            </g>
-            <rect x="22" y="22" width="40" height="9" rx="4" fill="#7A5C22"/>
           </g>
 
           <path d="M0 596 L1200 596 L1200 620 L0 620Z" fill="#0B0817"/>
@@ -743,6 +722,7 @@ function resolveBracket(bms, seeds) {
 const PLACEMENTS = {
   6: [{ place: 1, source: "W:GF" }, { place: 2, source: "L:GF" }, { place: 3, source: "L:LBF" },
       { place: 4, source: "L:LB3" }, { place: 5, source: "L:LB2" }, { place: 6, source: "L:LB1" }],
+  8: [{ place: 1, source: "W:GF" }, { place: 2, source: "L:GF" }, { place: 3, source: "L:LBF" }, { place: 4, source: "L:LB5" }],
   4: [{ place: 1, source: "W:GF" }, { place: 2, source: "L:GF" }, { place: 3, source: "L:LBF" }, { place: 4, source: "L:LB1" }]
 };
 function computePlacements(bms, slots) {
@@ -1047,7 +1027,7 @@ function renderSchedule() {
       const h = teamById(m.home_team_id), a = teamById(m.away_team_id), fin = m.status === "finished";
       return `<div class="match">
         <div class="side ${fin && m.home_score > m.away_score ? "winner" : ""}">${teamCell(h)}</div>
-        <div class="score ${fin ? "" : "pending"}">${fin ? `${m.home_score} – ${m.away_score}<small>Best of 3</small>` : "BEST OF 3"}</div>
+        <div class="score ${fin ? "" : "pending"}">${fin ? `${m.home_score} – ${m.away_score}<small>Best of ${m.best_of || 3}</small>` : "BEST OF " + (m.best_of || 3)}</div>
         <div class="side away ${fin && m.away_score > m.home_score ? "winner" : ""}">${teamCell(a)}</div>
         <div class="match-meta">${fin ? "Selesai" : fmtDate(m.scheduled_at)}</div></div>`;
     }).join("");
@@ -1098,35 +1078,187 @@ function renderBracket() {
   } else $("#podium").hidden = true;
 }
 
-/* ---------- bara api di latar hero ---------- */
-(function embers() {
+/* ---------- serangga robot berjalan + bara api ---------- */
+(function fx() {
   const c = $("#fxCanvas");
   if (!c || REDUCED) return;
   const ctx = c.getContext("2d"), dpr = Math.min(devicePixelRatio || 1, 2);
-  let w = 0, h = 0, parts = [];
-  const mk = () => ({
-    x: Math.random() * w, y: h + Math.random() * h * .6,
-    r: (Math.random() * 1.7 + .5) * dpr, s: (Math.random() * .34 + .12) * dpr,
-    a: Math.random() * .45 + .2, p: Math.random() * 6.28, violet: Math.random() < .32
+  let w = 0, h = 0, embers = [], bots = [], last = performance.now();
+
+  /* titik tempel dan posisi istirahat delapan kaki, dalam koordinat badan */
+  const LEG_PLAN = [];
+  for (const side of [-1, 1]) for (let i = 0; i < 4; i++) LEG_PLAN.push({
+    side, ax: 7.5 - i * 4.4, ay: side * 3.2,
+    ox: 15 - i * 9.5, oy: side * (15 + (i === 0 || i === 3 ? 2.5 : 0))
   });
+
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const approach = (v, t, k) => v + (t - v) * Math.min(1, k);
+
+  function newEmber() {
+    return { x: Math.random() * w, y: h + Math.random() * h * .6, r: rnd(.5, 2.2) * dpr,
+      s: rnd(.12, .46) * dpr, a: rnd(.2, .65), p: Math.random() * 6.28, violet: Math.random() < .32 };
+  }
+
+  function newBot() {
+    const depth = Math.random();
+    const b = {
+      depth, scale: (.55 + depth * .85) * dpr,
+      x: rnd(0, w), y: h * (.5 + .46 * depth),
+      a: Math.random() * 6.28, sp: 0,
+      maxsp: rnd(.5, 1.0) * dpr * (.55 + depth * .7),
+      turn: rnd(1.1, 2.0), pause: rnd(0, 2.4), tx: 0, ty: 0, blink: rnd(0, 4),
+      legs: []
+    };
+    pickTarget(b);
+    for (const p of LEG_PLAN) {
+      const f = bodyToWorld(b, p.ox, p.oy);
+      b.legs.push({ p, fx: f.x, fy: f.y, sx: f.x, sy: f.y, tx: f.x, ty: f.y, st: -1 });
+    }
+    return b;
+  }
+
+  function bodyToWorld(b, ox, oy) {
+    const cs = Math.cos(b.a), sn = Math.sin(b.a);
+    return { x: b.x + (ox * cs - oy * sn) * b.scale, y: b.y + (ox * sn + oy * cs) * b.scale };
+  }
+  function pickTarget(b) {
+    b.tx = rnd(w * .04, w * .96);
+    b.ty = rnd(h * .42, h * .97);
+  }
+
+  function updateBot(b, dt) {
+    if (b.pause > 0) { b.pause -= dt; b.sp = approach(b.sp, 0, dt * 3.4); }
+    else {
+      b.sp = approach(b.sp, b.maxsp, dt * 1.7);
+      if (Math.hypot(b.tx - b.x, b.ty - b.y) < 26 * b.scale) {
+        pickTarget(b);
+        if (Math.random() < .45) b.pause = rnd(.5, 2.6);
+      }
+    }
+    const want = Math.atan2(b.ty - b.y, b.tx - b.x);
+    let diff = ((want - b.a + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
+    const lim = b.turn * dt;
+    b.a += Math.max(-lim, Math.min(lim, diff));
+
+    const step = b.sp * dt * 60;
+    b.x += Math.cos(b.a) * step;
+    b.y += Math.sin(b.a) * step;
+    if (b.x < -60 || b.x > w + 60 || b.y < h * .38 || b.y > h * 1.02) { pickTarget(b); b.pause = 0; }
+
+    /* langkah kaki: hanya beberapa kaki melangkah bersamaan, sisanya menahan badan */
+    const moving = b.legs.filter(l => l.st >= 0).length;
+    b.legs.forEach((l, i) => {
+      if (l.st < 0) {
+        const ideal = bodyToWorld(b, l.p.ox, l.p.oy);
+        const far = Math.hypot(ideal.x - l.fx, ideal.y - l.fy);
+        const neighbourBusy = (b.legs[i - 1]?.p.side === l.p.side && b.legs[i - 1].st >= 0)
+          || (b.legs[i + 1]?.p.side === l.p.side && b.legs[i + 1].st >= 0);
+        if (far > 12 * b.scale && moving < 3 && !neighbourBusy) {
+          l.st = 0; l.sx = l.fx; l.sy = l.fy;
+          l.tx = ideal.x + Math.cos(b.a) * 7 * b.scale;
+          l.ty = ideal.y + Math.sin(b.a) * 7 * b.scale;
+        }
+      } else {
+        l.st += dt / .17;
+        if (l.st >= 1) { l.st = -1; l.fx = l.tx; l.fy = l.ty; }
+        else {
+          const t = l.st, e = t * t * (3 - 2 * t);
+          l.fx = l.sx + (l.tx - l.sx) * e;
+          l.fy = l.sy + (l.ty - l.sy) * e - Math.sin(t * Math.PI) * 8 * b.scale;
+        }
+      }
+    });
+    b.blink -= dt;
+    if (b.blink < -.14) b.blink = rnd(2.5, 6);
+  }
+
+  /* dua ruas kaki, lutut dihitung agar menekuk ke atas seperti laba-laba */
+  function knee(ax, ay, fx, fy, l1, l2) {
+    let dx = fx - ax, dy = fy - ay;
+    let d = Math.min(Math.hypot(dx, dy), l1 + l2 - .001) || .001;
+    const base = Math.atan2(dy, dx);
+    const cos = Math.max(-1, Math.min(1, (l1 * l1 + d * d - l2 * l2) / (2 * l1 * d)));
+    const ang = base - Math.acos(cos);
+    return { x: ax + Math.cos(ang) * l1, y: ay + Math.sin(ang) * l1 };
+  }
+
+  function drawBot(b) {
+    const s = b.scale, alpha = .42 + b.depth * .5;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+
+    /* bayangan di bawah badan */
+    ctx.beginPath();
+    ctx.ellipse(b.x, b.y + 5 * s, 17 * s, 5 * s, 0, 0, 6.284);
+    ctx.fillStyle = "rgba(4,2,10,.5)"; ctx.fill();
+
+    /* kaki */
+    ctx.lineCap = "round";
+    for (const l of b.legs) {
+      const at = bodyToWorld(b, l.p.ax, l.p.ay);
+      const k = knee(at.x, at.y, l.fx, l.fy, 13 * s, 15 * s);
+      ctx.strokeStyle = "#6F66A8"; ctx.lineWidth = 2.1 * s;
+      ctx.beginPath(); ctx.moveTo(at.x, at.y); ctx.lineTo(k.x, k.y); ctx.stroke();
+      ctx.strokeStyle = "#544C86"; ctx.lineWidth = 1.5 * s;
+      ctx.beginPath(); ctx.moveTo(k.x, k.y); ctx.lineTo(l.fx, l.fy); ctx.stroke();
+      ctx.beginPath(); ctx.arc(k.x, k.y, 1.7 * s, 0, 6.284);
+      ctx.fillStyle = "#F5C451"; ctx.globalAlpha = alpha * .8; ctx.fill(); ctx.globalAlpha = alpha;
+      if (l.st < 0) { ctx.beginPath(); ctx.arc(l.fx, l.fy, 1.3 * s, 0, 6.284); ctx.fillStyle = "#3E3770"; ctx.fill(); }
+    }
+
+    ctx.translate(b.x, b.y); ctx.rotate(b.a);
+
+    /* perut */
+    ctx.beginPath(); ctx.ellipse(-9 * s, 0, 9 * s, 7 * s, 0, 0, 6.284);
+    ctx.fillStyle = "#1B1440"; ctx.fill();
+    ctx.strokeStyle = "#3A3170"; ctx.lineWidth = 1 * s; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-14 * s, 0); ctx.lineTo(-5 * s, 0);
+    ctx.strokeStyle = "rgba(155,123,255,.55)"; ctx.lineWidth = 1.2 * s; ctx.stroke();
+
+    /* dada */
+    ctx.beginPath(); ctx.ellipse(2 * s, 0, 9 * s, 6.2 * s, 0, 0, 6.284);
+    ctx.fillStyle = "#231A50"; ctx.fill();
+    ctx.strokeStyle = "#4A3F8C"; ctx.lineWidth = 1 * s; ctx.stroke();
+
+    /* mata dan sungut */
+    const eye = b.blink < 0 ? .15 : 1;
+    ctx.beginPath(); ctx.arc(9 * s, 0, 2.4 * s * eye, 0, 6.284);
+    ctx.fillStyle = "#FFD87A"; ctx.fill();
+    ctx.shadowColor = "#F5C451"; ctx.shadowBlur = 12 * s;
+    ctx.fill(); ctx.shadowBlur = 0;
+    ctx.strokeStyle = "#5C5296"; ctx.lineWidth = 1 * s;
+    ctx.beginPath(); ctx.moveTo(8 * s, -3 * s); ctx.lineTo(15 * s, -7 * s); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(8 * s, 3 * s); ctx.lineTo(15 * s, 7 * s); ctx.stroke();
+    ctx.restore();
+  }
+
   function resize() {
     const r = c.getBoundingClientRect();
-    w = c.width = Math.max(1, r.width * dpr); h = c.height = Math.max(1, r.height * dpr);
-    parts = Array.from({ length: Math.min(88, Math.max(26, Math.round(w * h / (34000 * dpr)))) }, mk);
+    w = c.width = Math.max(1, r.width * dpr);
+    h = c.height = Math.max(1, r.height * dpr);
+    embers = Array.from({ length: Math.min(70, Math.max(20, Math.round(w * h / (46000 * dpr)))) }, newEmber);
+    const n = w / dpr < 700 ? 3 : w / dpr < 1100 ? 4 : 6;
+    bots = Array.from({ length: n }, newBot);
   }
-  function frame() {
+
+  function frame(now) {
+    const dt = Math.min(.05, (now - last) / 1000); last = now;
     ctx.clearRect(0, 0, w, h);
-    for (const q of parts) {
+    for (const q of embers) {
       q.y -= q.s; q.p += .012; q.x += Math.sin(q.p) * .38 * dpr;
-      if (q.y < -12) { Object.assign(q, mk()); q.y = h + 12; }
+      if (q.y < -12) { Object.assign(q, newEmber()); q.y = h + 12; }
       ctx.beginPath(); ctx.arc(q.x, q.y, q.r, 0, 6.284);
       ctx.fillStyle = `rgba(${q.violet ? "155,123,255" : "245,196,81"},${(q.a * (.55 + .45 * Math.sin(q.p * 2))).toFixed(3)})`;
       ctx.fill();
     }
+    bots.sort((a, b) => a.depth - b.depth);
+    for (const b of bots) { updateBot(b, dt); drawBot(b); }
     requestAnimationFrame(frame);
   }
+
   addEventListener("resize", resize, { passive: true });
-  resize(); frame();
+  resize(); requestAnimationFrame(frame);
 })();
 
 /* ---------- parallaks mengikuti kursor ---------- */
