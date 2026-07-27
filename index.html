@@ -573,6 +573,41 @@ function computeStandings(teams, matches) {
 }
 
 /* ---------- bracket ---------- */
+const BRACKET_TEMPLATES = {
+  6: [
+    { code: "UB1", label: "Upper Bracket R1 · Match 1", stage: "upper", round: 1, order_no: 1, best_of: 3, home_source: "seed:3", away_source: "seed:6" },
+    { code: "UB2", label: "Upper Bracket R1 · Match 2", stage: "upper", round: 1, order_no: 2, best_of: 3, home_source: "seed:4", away_source: "seed:5" },
+    { code: "UB3", label: "Upper Bracket Semifinal 1", stage: "upper", round: 2, order_no: 1, best_of: 3, home_source: "seed:1", away_source: "W:UB2" },
+    { code: "UB4", label: "Upper Bracket Semifinal 2", stage: "upper", round: 2, order_no: 2, best_of: 3, home_source: "seed:2", away_source: "W:UB1" },
+    { code: "UBF", label: "Upper Bracket Final", stage: "upper", round: 3, order_no: 1, best_of: 5, home_source: "W:UB3", away_source: "W:UB4" },
+    { code: "LB1", label: "Lower Bracket R1", stage: "lower", round: 1, order_no: 1, best_of: 3, home_source: "L:UB1", away_source: "L:UB2" },
+    { code: "LB2", label: "Lower Bracket R2", stage: "lower", round: 2, order_no: 1, best_of: 3, home_source: "W:LB1", away_source: "L:UB3" },
+    { code: "LB3", label: "Lower Bracket Semifinal", stage: "lower", round: 3, order_no: 1, best_of: 3, home_source: "W:LB2", away_source: "L:UB4" },
+    { code: "LBF", label: "Lower Bracket Final", stage: "lower", round: 4, order_no: 1, best_of: 5, home_source: "W:LB3", away_source: "L:UBF" },
+    { code: "GF", label: "Grand Final", stage: "grand", round: 5, order_no: 1, best_of: 5, home_source: "W:UBF", away_source: "W:LBF" }
+  ]
+};
+function resolveBracket(bms, seeds) {
+  const byCode = new Map(bms.map(b => [b.code, b]));
+  const res = code => {
+    const b = byCode.get(code);
+    if (!b || b.status !== "finished" || !b.home_team_id || !b.away_team_id || b.home_score === b.away_score) return null;
+    return b.home_score > b.away_score
+      ? { winner: b.home_team_id, loser: b.away_team_id }
+      : { winner: b.away_team_id, loser: b.home_team_id };
+  };
+  const from = src => {
+    if (!src) return null;
+    const [kind, val] = src.split(":");
+    if (kind === "seed") return seeds[+val - 1] || null;
+    const r = res(val);
+    return r ? (kind === "W" ? r.winner : r.loser) : null;
+  };
+  for (let pass = 0; pass < 3; pass++) for (const b of bms) {
+    b.home_team_id = from(b.home_source); b.away_team_id = from(b.away_source);
+  }
+  return bms;
+}
 const PLACEMENTS = {
   6: [{ place: 1, source: "W:GF" }, { place: 2, source: "L:GF" }, { place: 3, source: "L:LBF" },
       { place: 4, source: "L:LB3" }, { place: 5, source: "L:LB2" }, { place: 6, source: "L:LB1" }],
@@ -633,7 +668,7 @@ function demoData() {
       status: r.round <= 7 ? "finished" : "scheduled",
       home_score: r.round <= 7 ? (seed % 2 ? 2 : seed === 0 ? 0 : 1) : 0,
       away_score: r.round <= 7 ? (seed % 2 ? (seed === 3 ? 1 : 0) : 2) : 0,
-      scheduled_at: new Date(Date.now() + r.round * 864e5).toISOString() }));
+      scheduled_at: new Date(Date.now() + r.round * 864e5).toISOString() });
   }));
   matches.forEach(m => { if (m.status === "finished" && m.home_score === m.away_score) { m.home_score = 2; m.away_score = 1; } });
   return { teams, players, matches,
@@ -658,7 +693,14 @@ function generateSchedule(teamIds) {
 async function loadAll() {
   if (DEMO) {
     const d = demoData();
-    SETTINGS = d.settings; TEAMS = d.teams; PLAYERS = d.players; MATCHES = d.matches; BRACKET = [];
+    SETTINGS = d.settings; TEAMS = d.teams; PLAYERS = d.players; MATCHES = d.matches;
+    const st = computeStandings(TEAMS, MATCHES);
+    const seeds = st.slice(0, 6).map(r => r.team.id);
+    const played = { UB1: [2, 0], UB2: [2, 1], UB3: [1, 2], UB4: [2, 0], LB1: [2, 1] };
+    BRACKET = BRACKET_TEMPLATES[6].map(t => ({ ...t, home_team_id: null, away_team_id: null,
+      home_score: played[t.code]?.[0] ?? 0, away_score: played[t.code]?.[1] ?? 0,
+      status: played[t.code] ? "finished" : "scheduled" }));
+    resolveBracket(BRACKET, seeds);
     $("#demoBar").hidden = false;
   } else {
     const [s, t, p, m, b] = await Promise.all([
