@@ -117,6 +117,8 @@ td.num,th.num{text-align:center;font-family:var(--mono)}
 
 .round-head{display:flex;align-items:center;gap:14px;margin:30px 0 12px;font-family:var(--mono);font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--dim)}
 .round-head::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--line),transparent)}
+.bulk-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 14px;margin-bottom:10px;
+  border:1px dashed var(--line-soft);border-radius:var(--r);background:rgba(8,5,18,.35)}
 
 .adm-match{display:grid;grid-template-columns:1fr 150px 1fr auto;gap:14px;align-items:center;
   background:linear-gradient(120deg,var(--panel),var(--night));border:1px solid var(--line-soft);border-radius:var(--r);
@@ -213,9 +215,19 @@ td.num,th.num{text-align:center;font-family:var(--mono)}
       <button class="btn btn-ghost btn-sm" id="btnGenSchedule">Buat ulang jadwal</button>
     </div>
     <div class="card" style="margin-bottom:20px">
-      <p class="muted small" style="margin:0">Jadwal disusun otomatis: seluruh tim terverifikasi saling bertemu dua kali,
-        kandang dan tandang, Best of 3. Membuat ulang akan menghapus jadwal dan skor babak reguler yang ada.
-        Skor sah untuk Bo3 hanya 2–0 atau 2–1; kosongkan keduanya untuk mengembalikan match ke status belum main.</p>
+      <p class="muted small" style="margin:0 0 14px">Jadwal disusun otomatis: seluruh tim terverifikasi saling bertemu dua kali,
+        kandang dan tandang. Membuat ulang akan menghapus jadwal dan skor yang ada.
+        Kosongkan kedua kotak skor untuk mengembalikan match ke status belum dimainkan.</p>
+      <div class="row">
+        <input id="schSearch" placeholder="Cari nama tim…" style="max-width:250px">
+        <select id="schRound" style="max-width:170px"></select>
+        <select id="schStatus" style="max-width:190px">
+          <option value="all">Semua status</option>
+          <option value="pending">Belum dimainkan</option>
+          <option value="done">Sudah selesai</option>
+        </select>
+        <span class="badge gold" id="schCount">0 match</span>
+      </div>
     </div>
     <div id="admSchedule"></div>
   </section>
@@ -244,9 +256,20 @@ td.num,th.num{text-align:center;font-family:var(--mono)}
       </div>
       <div class="grid g3">
         <label class="field"><span>Penyelenggara</span><input name="organizer" maxlength="60"></label>
-        <label class="field"><span>Slot playoff</span><select name="playoff_slots"><option value="6">6 tim</option><option value="4">4 tim</option></select></label>
+        <label class="field"><span>Slot playoff</span><select name="playoff_slots">
+          <option value="4">4 tim</option><option value="6">6 tim</option><option value="8">8 tim</option></select></label>
         <label class="field"><span>Pendaftaran</span><select name="registration_open"><option value="true">Dibuka</option><option value="false">Ditutup</option></select></label>
       </div>
+      <div class="grid g3">
+        <label class="field"><span>Format babak reguler</span><select name="bo_regular">
+          <option value="1">Best of 1</option><option value="3">Best of 3</option><option value="5">Best of 5</option></select></label>
+        <label class="field"><span>Format playoff</span><select name="bo_playoff">
+          <option value="1">Best of 1</option><option value="3">Best of 3</option><option value="5">Best of 5</option></select></label>
+        <label class="field"><span>Format partai final</span><select name="bo_final">
+          <option value="3">Best of 3</option><option value="5">Best of 5</option><option value="7">Best of 7</option></select></label>
+      </div>
+      <p class="muted small" style="margin:0 0 14px">Format partai final berlaku untuk upper bracket final, lower bracket final,
+        dan grand final. Mengubah format tidak mengubah jadwal yang sudah dibuat — susun ulang jadwal atau bracket agar ikut berubah.</p>
       <div class="row end"><button class="btn">Simpan pengaturan</button></div>
     </form>
 
@@ -367,6 +390,22 @@ const BRACKET_TEMPLATES = {
     { code: "LB3", label: "Lower Bracket Semifinal", stage: "lower", round: 3, order_no: 1, best_of: 3, home_source: "W:LB2", away_source: "L:UB4" },
     { code: "LBF", label: "Lower Bracket Final", stage: "lower", round: 4, order_no: 1, best_of: 5, home_source: "W:LB3", away_source: "L:UBF" },
     { code: "GF", label: "Grand Final", stage: "grand", round: 5, order_no: 1, best_of: 5, home_source: "W:UBF", away_source: "W:LBF" }
+  ],
+  8: [
+    { code: "UB1", label: "Upper Bracket QF 1", stage: "upper", round: 1, order_no: 1, home_source: "seed:1", away_source: "seed:8" },
+    { code: "UB2", label: "Upper Bracket QF 2", stage: "upper", round: 1, order_no: 2, home_source: "seed:4", away_source: "seed:5" },
+    { code: "UB3", label: "Upper Bracket QF 3", stage: "upper", round: 1, order_no: 3, home_source: "seed:2", away_source: "seed:7" },
+    { code: "UB4", label: "Upper Bracket QF 4", stage: "upper", round: 1, order_no: 4, home_source: "seed:3", away_source: "seed:6" },
+    { code: "UB5", label: "Upper Bracket Semifinal 1", stage: "upper", round: 2, order_no: 1, home_source: "W:UB1", away_source: "W:UB2" },
+    { code: "UB6", label: "Upper Bracket Semifinal 2", stage: "upper", round: 2, order_no: 2, home_source: "W:UB3", away_source: "W:UB4" },
+    { code: "UBF", label: "Upper Bracket Final", stage: "upper", round: 3, order_no: 1, home_source: "W:UB5", away_source: "W:UB6" },
+    { code: "LB1", label: "Lower Bracket R1 · Match 1", stage: "lower", round: 1, order_no: 1, home_source: "L:UB1", away_source: "L:UB2" },
+    { code: "LB2", label: "Lower Bracket R1 · Match 2", stage: "lower", round: 1, order_no: 2, home_source: "L:UB3", away_source: "L:UB4" },
+    { code: "LB3", label: "Lower Bracket R2 · Match 1", stage: "lower", round: 2, order_no: 1, home_source: "W:LB1", away_source: "L:UB6" },
+    { code: "LB4", label: "Lower Bracket R2 · Match 2", stage: "lower", round: 2, order_no: 2, home_source: "W:LB2", away_source: "L:UB5" },
+    { code: "LB5", label: "Lower Bracket Semifinal", stage: "lower", round: 3, order_no: 1, home_source: "W:LB3", away_source: "W:LB4" },
+    { code: "LBF", label: "Lower Bracket Final", stage: "lower", round: 4, order_no: 1, home_source: "W:LB5", away_source: "L:UBF" },
+    { code: "GF", label: "Grand Final", stage: "grand", round: 5, order_no: 1, home_source: "W:UBF", away_source: "W:LBF" }
   ],
   4: [
     { code: "UB1", label: "Upper Bracket Semifinal 1", stage: "upper", round: 1, order_no: 1, best_of: 3, home_source: "seed:1", away_source: "seed:4" },
@@ -591,6 +630,9 @@ function renderSettings() {
   f.organizer.value = SETTINGS.organizer || "";
   f.playoff_slots.value = String(SETTINGS.playoff_slots || 6);
   f.registration_open.value = String(!!SETTINGS.registration_open);
+  f.bo_regular.value = String(SETTINGS.bo_regular || 3);
+  f.bo_playoff.value = String(SETTINGS.bo_playoff || 3);
+  f.bo_final.value = String(SETTINGS.bo_final || 5);
   $("#resetInfo").textContent = `${MATCHES.length} match reguler · ${BRACKET.length} match playoff`;
 }
 $("#settingsForm").addEventListener("submit", async e => {
@@ -599,6 +641,7 @@ $("#settingsForm").addEventListener("submit", async e => {
   const { error } = await sb.from("settings").update({
     tournament_name: f.tournament_name.value.trim(), season: f.season.value.trim(),
     organizer: f.organizer.value.trim(), playoff_slots: +f.playoff_slots.value,
+    bo_regular: +f.bo_regular.value, bo_playoff: +f.bo_playoff.value, bo_final: +f.bo_final.value,
     registration_open: f.registration_open.value === "true", updated_at: new Date().toISOString()
   }).eq("id", 1);
   if (error) return toast(error.message, "err");
@@ -628,10 +671,11 @@ $("#btnClearBracket").addEventListener("click", async () => {
 $("#btnGenSchedule").addEventListener("click", async () => {
   const ids = TEAMS.filter(t => t.status === "approved").map(t => t.id);
   if (ids.length < 2) return toast("Butuh minimal dua tim terverifikasi.", "warn");
-  if (!confirm(`Buat jadwal untuk ${ids.length} tim? Jadwal dan skor babak reguler yang ada akan dihapus.`)) return;
+  const bo = +(SETTINGS.bo_regular || 3);
+  if (!confirm(`Buat jadwal Best of ${bo} untuk ${ids.length} tim? Jadwal dan skor babak reguler yang ada akan dihapus.`)) return;
   const rows = [];
   generateSchedule(ids).forEach(r => r.pairs.forEach(([h, a]) =>
-    rows.push({ round: r.round, leg: r.leg, home_team_id: h, away_team_id: a, best_of: 3 })));
+    rows.push({ round: r.round, leg: r.leg, home_team_id: h, away_team_id: a, best_of: bo })));
   await sb.from("matches").delete().neq("id", "00000000-0000-0000-0000-000000000000");
   const { error } = await sb.from("matches").insert(rows);
   if (error) return toast(error.message, "err");
@@ -645,30 +689,87 @@ function localValue(iso) {
   return new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 16);
 }
 function renderSchedule() {
+  const list = $("#admSchedule");
   if (!MATCHES.length) {
-    $("#admSchedule").innerHTML = `<div class="empty"><strong>Jadwal kosong</strong>Klik "Buat ulang jadwal" setelah tim diverifikasi.</div>`;
+    $("#schCount").textContent = "0 match";
+    list.innerHTML = `<div class="empty"><strong>Jadwal kosong</strong>Klik "Buat ulang jadwal" setelah tim diverifikasi.</div>`;
     return;
   }
-  const rounds = [...new Set(MATCHES.map(m => m.round))].sort((a, b) => a - b);
-  $("#admSchedule").innerHTML = rounds.map(r => {
-    const ms = MATCHES.filter(m => m.round === r);
-    return `<div class="round-head">Ronde ${r} · ${ms[0].leg === 2 ? "tandang" : "kandang"}</div>` + ms.map(m => `
-      <div class="adm-match" data-match="${m.id}">
+  const allRounds = [...new Set(MATCHES.map(m => m.round))].sort((a, b) => a - b);
+  const selR = $("#schRound"), keep = selR.value;
+  selR.innerHTML = `<option value="all">Semua ronde</option>` + allRounds.map(r => `<option value="${r}">Ronde ${r}</option>`).join("");
+  selR.value = keep && [...selR.options].some(o => o.value === keep) ? keep : "all";
+
+  const q = $("#schSearch").value.trim().toLowerCase();
+  const st = $("#schStatus").value;
+  const shown = MATCHES.filter(m => {
+    if (selR.value !== "all" && m.round !== +selR.value) return false;
+    if (st === "done" && m.status !== "finished") return false;
+    if (st === "pending" && m.status === "finished") return false;
+    if (q) {
+      const names = (nameOf(m.home_team_id) + " " + nameOf(m.away_team_id) + " " +
+        (teamById(m.home_team_id)?.tag || "") + " " + (teamById(m.away_team_id)?.tag || "")).toLowerCase();
+      if (!names.includes(q)) return false;
+    }
+    return true;
+  });
+
+  $("#schCount").textContent = `${shown.length} dari ${MATCHES.length} match`;
+  if (!shown.length) {
+    list.innerHTML = `<div class="empty"><strong>Tidak ada yang cocok</strong>Ubah kata kunci atau penyaringnya.</div>`;
+    return;
+  }
+
+  const rounds = [...new Set(shown.map(m => m.round))].sort((a, b) => a - b);
+  list.innerHTML = rounds.map(r => {
+    const ms = shown.filter(m => m.round === r);
+    const done = ms.filter(m => m.status === "finished").length;
+    return `<div class="round-head">Ronde ${r} · ${ms[0].leg === 2 ? "tandang" : "kandang"} · ${done}/${ms.length} selesai</div>
+      <div class="bulk-bar">
+        <span class="muted small">Atur jadwal sekaligus:</span>
+        <input type="datetime-local" data-bulkdate="${r}" style="width:200px">
+        <select data-bulkgap="${r}" style="width:130px">
+          <option value="0">waktu sama</option><option value="30">jeda 30 menit</option>
+          <option value="45" selected>jeda 45 menit</option><option value="60">jeda 1 jam</option>
+          <option value="90">jeda 1,5 jam</option><option value="1440">jeda 1 hari</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" data-bulk="${r}">Terapkan</button>
+      </div>` + ms.map(m => `
+      <div class="adm-match" data-match="${m.id}" data-bo="${m.best_of || 3}">
         <div class="side">${logoHtml(teamById(m.home_team_id))}<span class="tname">${esc(nameOf(m.home_team_id))}</span></div>
         <div class="center">
-          <input class="score-input" type="number" min="0" max="2" value="${m.home_score}" data-f="home">
+          <input class="score-input" type="number" min="0" max="${m.best_of || 3}" value="${m.home_score}" data-f="home">
           <span class="muted">–</span>
-          <input class="score-input" type="number" min="0" max="2" value="${m.away_score}" data-f="away">
+          <input class="score-input" type="number" min="0" max="${m.best_of || 3}" value="${m.away_score}" data-f="away">
         </div>
         <div class="side away"><span class="tname">${esc(nameOf(m.away_team_id))}</span>${logoHtml(teamById(m.away_team_id))}</div>
         <div class="tools">
-          <input type="datetime-local" style="width:196px" data-f="date" value="${localValue(m.scheduled_at)}">
+          <span class="badge">Bo${m.best_of || 3}</span>
+          <input type="datetime-local" style="width:200px" data-f="date" value="${localValue(m.scheduled_at)}">
           <button class="btn btn-sm" data-save-match="${m.id}">Simpan</button>
           ${m.status === "finished" ? `<span class="badge mint">Selesai</span>
             <button class="btn btn-ghost btn-sm" data-open-match="${m.id}">Buka</button>` : ""}
         </div></div>`).join("");
   }).join("");
 }
+["#schSearch", "#schRound", "#schStatus"].forEach(sel =>
+  $(sel).addEventListener("input", renderSchedule));
+
+/* atur jadwal satu ronde sekaligus */
+document.addEventListener("click", async e => {
+  const b = e.target.closest("[data-bulk]"); if (!b) return;
+  const r = +b.dataset.bulk;
+  const start = $(`[data-bulkdate="${r}"]`).value;
+  if (!start) return toast("Pilih tanggal dan jam mulainya dulu.", "warn");
+  const gap = +$(`[data-bulkgap="${r}"]`).value;
+  const ms = MATCHES.filter(m => m.round === r);
+  const t0 = new Date(start).getTime();
+  const { error } = await sb.from("matches").upsert(ms.map((m, i) => ({
+    id: m.id, scheduled_at: new Date(t0 + i * gap * 60000).toISOString()
+  })));
+  if (error) return toast(error.message, "err");
+  toast(`Jadwal ronde ${r} diatur untuk ${ms.length} match.`); loadAll();
+});
 document.addEventListener("click", async e => {
   const sv = e.target.closest("[data-save-match]"), op = e.target.closest("[data-open-match]");
   if (op) {
@@ -677,10 +778,11 @@ document.addEventListener("click", async e => {
   }
   if (!sv) return;
   const box = sv.closest(".adm-match");
+  const bo = +(box.dataset.bo || 3);
   const h = +$("[data-f=home]", box).value, a = +$("[data-f=away]", box).value, d = $("[data-f=date]", box).value;
   const payload = { scheduled_at: d ? new Date(d).toISOString() : null };
   if (h || a) {
-    if (!validScore(3, h, a)) return toast("Skor Bo3 harus 2–0 atau 2–1.", "warn");
+    if (!validScore(bo, h, a)) return toast(`Skor Bo${bo}: pemenang harus mencapai ${Math.ceil(bo / 2)} game.`, "warn");
     Object.assign(payload, { home_score: h, away_score: a, status: "finished" });
   } else Object.assign(payload, { home_score: 0, away_score: 0, status: "scheduled" });
   const { error } = await sb.from("matches").update(payload).eq("id", sv.dataset.saveMatch);
@@ -691,12 +793,16 @@ document.addEventListener("click", async e => {
 /* ---------- bracket ---------- */
 $("#btnGenBracket").addEventListener("click", async () => {
   const slots = +(SETTINGS.playoff_slots || 6), tpl = BRACKET_TEMPLATES[slots];
-  if (!tpl) return toast("Slot playoff harus 4 atau 6.", "warn");
+  if (!tpl) return toast("Slot playoff harus 4, 6, atau 8.", "warn");
   if (STANDINGS.length < slots) return toast(`Butuh minimal ${slots} tim di klasemen.`, "warn");
   if (!confirm(`Buat bracket untuk ${slots} tim teratas? Bracket lama beserta skornya dihapus.`)) return;
   const seeds = STANDINGS.slice(0, slots).map(r => r.team.id);
   await sb.from("bracket_matches").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-  const rows = tpl.map(t => ({ ...t, home_team_id: null, away_team_id: null, home_score: 0, away_score: 0, status: "scheduled" }));
+  const boP = +(SETTINGS.bo_playoff || 3), boF = +(SETTINGS.bo_final || 5);
+  const rows = tpl.map(t => ({
+    ...t, best_of: ["UBF", "LBF", "GF"].includes(t.code) ? boF : boP,
+    home_team_id: null, away_team_id: null, home_score: 0, away_score: 0, status: "scheduled"
+  }));
   resolveBracket(rows, seeds);
   const { error } = await sb.from("bracket_matches").insert(rows);
   if (error) return toast(error.message, "err");
