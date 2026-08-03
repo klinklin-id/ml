@@ -185,6 +185,37 @@ h3{font-size:21px;letter-spacing:.03em}
 .hero h1 .ch{display:inline-block;opacity:0;transform:translateY(28px) rotate(4deg);animation:letter .62s cubic-bezier(.2,.9,.3,1) forwards}
 @keyframes letter{to{opacity:1;transform:none}}
 
+/* ---------- lapisan laba-laba: seluruh layar jadi temboknya ---------- */
+#webFx{
+  position:fixed;inset:0;width:100%;height:100%;
+  z-index:45;pointer-events:none;
+}
+@media (prefers-reduced-motion:reduce){#webFx{display:none}}
+
+/* huruf judul yang bisa digerogoti */
+.hero h1 .tail{overflow:visible}
+.hero h1 .tail .ch{background:var(--grad-gold);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero h1 .ch.settled{animation:none;opacity:1;transform:none}
+.hero h1 .ch.settled.gnaw{animation:gnawShake .19s linear infinite}
+@keyframes gnawShake{
+  0%,100%{opacity:1;transform:translate(0,0) rotate(0)}
+  25%{opacity:1;transform:translate(.9px,-.7px) rotate(.5deg)}
+  50%{opacity:1;transform:translate(-.8px,.6px) rotate(-.6deg)}
+  75%{opacity:1;transform:translate(.5px,.8px) rotate(.3deg)}
+}
+.hero h1 .ch.settled.eaten{animation:fallOff .95s cubic-bezier(.45,0,.85,1) forwards}
+@keyframes fallOff{
+  0%{opacity:1;transform:none;filter:none}
+  18%{opacity:1;transform:translateY(-4px) rotate(-6deg);filter:drop-shadow(0 0 10px rgba(255,77,109,.6))}
+  100%{opacity:0;transform:translateY(90px) rotate(38deg) scale(.72);filter:blur(2px)}
+}
+.hero h1 .ch.settled.regrow{animation:regrowIn .75s cubic-bezier(.2,.9,.3,1) both}
+@keyframes regrowIn{
+  0%{opacity:0;transform:translateY(-18px) scale(.6);filter:drop-shadow(0 0 16px rgba(245,196,81,.9))}
+  60%{opacity:1;filter:drop-shadow(0 0 12px rgba(245,196,81,.55))}
+  100%{opacity:1;transform:none;filter:none}
+}
+
 /* muncul saat digulir */
 [data-reveal]{opacity:0;transform:translateY(22px);transition:opacity .7s cubic-bezier(.2,.8,.3,1),transform .7s cubic-bezier(.2,.8,.3,1)}
 [data-reveal].in{opacity:1;transform:none}
@@ -427,7 +458,7 @@ footer.site{border-top:1px solid var(--line-soft);padding:30px 0;color:var(--dim
         <div class="rune"></div>
       </div>
       <p class="eyebrow reveal" id="heroSeason">Season 1</p>
-      <h1 class="reveal" id="heroTitle">Turnamen<span class="tail">Mobile Legends</span></h1>
+      <h1 class="reveal" id="heroTitle">KLINKLIN<span class="tail">MOBILE LEGEND</span></h1>
       <p class="lead reveal">Liga penuh, semua tim saling bertemu dua kali — kandang dan tandang, Best of 3.
         Enam teratas lanjut ke playoff double elimination. Satu kekalahan di lower bracket, perjalanan berakhir.</p>
       <div class="cta reveal">
@@ -617,6 +648,8 @@ footer.site{border-top:1px solid var(--line-soft);padding:30px 0;color:var(--dim
   <a href="admin.html" style="margin-left:auto">Panel panitia →</a>
 </div></footer>
 
+<canvas id="webFx" aria-hidden="true"></canvas>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 /* =====================================================================
@@ -801,7 +834,7 @@ function demoData() {
   }));
   matches.forEach(m => { if (m.status === "finished" && m.home_score === m.away_score) { m.home_score = 2; m.away_score = 1; } });
   return { teams, players, matches,
-    settings: { tournament_name: "Nusantara MLBB Cup", season: "Season 1 · 2026", organizer: "Panitia Turnamen", registration_open: true, playoff_slots: 6 } };
+    settings: { tournament_name: "KLINKLIN MOBILE LEGEND", season: "Season 1 · 2026", organizer: "Panitia Turnamen", registration_open: true, playoff_slots: 6 } };
 }
 function generateSchedule(teamIds) {
   const list = [...teamIds]; if (list.length < 2) return [];
@@ -840,7 +873,7 @@ async function loadAll() {
       sb.from("bracket_matches").select("*").order("round").order("order_no")
     ]);
     if (t.error) return toast("Gagal memuat data: " + t.error.message, "err");
-    SETTINGS = s.data || { tournament_name: "MLBB Cup", playoff_slots: 6, registration_open: true };
+    SETTINGS = s.data || { tournament_name: "KLINKLIN MOBILE LEGEND", playoff_slots: 6, registration_open: true };
     TEAMS = t.data || []; PLAYERS = p.data || []; MATCHES = m.data || []; BRACKET = b.data || [];
   }
   STANDINGS = computeStandings(TEAMS.filter(t => t.status === "approved"), MATCHES);
@@ -850,9 +883,20 @@ async function loadAll() {
 
 const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-function splitLetters(text) {
+function splitLetters(text, off = 0) {
   return [...text].map((c, i) => c === " " ? " "
-    : `<span class="ch" style="animation-delay:${(0.22 + i * 0.045).toFixed(2)}s">${esc(c)}</span>`).join("");
+    : `<span class="ch" style="animation-delay:${(0.22 + (i + off) * 0.045).toFixed(2)}s">${esc(c)}</span>`).join("");
+}
+/* setelah animasi masuk selesai, huruf dikunci agar bisa digerogoti laba-laba */
+function settleLetters() {
+  const els = $$("#heroTitle .ch");
+  if (!els.length) return;
+  clearTimeout(settleLetters._t);
+  const wait = REDUCED ? 0 : (0.22 + els.length * 0.045 + 0.7) * 1000;
+  settleLetters._t = setTimeout(() => {
+    els.forEach(el => el.classList.add("settled"));
+    dispatchEvent(new Event("titlechange"));
+  }, wait);
 }
 function countTo(el, target) {
   const from = +el.textContent || 0;
@@ -866,12 +910,16 @@ function countTo(el, target) {
 }
 
 function renderHeader() {
-  const name = SETTINGS.tournament_name || "Turnamen Mobile Legends";
+  const name = SETTINGS.tournament_name || "KLINKLIN MOBILE LEGEND";
   document.title = name;
   $("#brandName").textContent = name;
   $("#heroSeason").textContent = SETTINGS.season || "Season 1";
   const parts = name.split(" ");
-  $("#heroTitle").innerHTML = `${REDUCED ? esc(parts[0]) : splitLetters(parts[0])}<span class="tail">${esc(parts.slice(1).join(" ") || "Championship")}</span>`;
+  const head = parts[0], rest = parts.slice(1).join(" ") || "Championship";
+  $("#heroTitle").innerHTML = REDUCED
+    ? `${esc(head)}<span class="tail">${esc(rest)}</span>`
+    : `${splitLetters(head)}<span class="tail">${splitLetters(rest, head.length)}</span>`;
+  settleLetters();
   countTo($("#stTeams"), TEAMS.filter(t => t.status === "approved").length);
   countTo($("#stMatches"), MATCHES.length);
   countTo($("#stDone"), MATCHES.filter(m => m.status === "finished").length);
@@ -1079,11 +1127,54 @@ function renderBracket() {
 }
 
 /* ---------- serangga robot berjalan + bara api ---------- */
-(function fx() {
+/* ---------- bara api di panggung hero ---------- */
+(function embersFx() {
   const c = $("#fxCanvas");
   if (!c || REDUCED) return;
   const ctx = c.getContext("2d"), dpr = Math.min(devicePixelRatio || 1, 2);
-  let w = 0, h = 0, embers = [], bots = [], last = performance.now();
+  let w = 0, h = 0, embers = [];
+  const rnd = (a, b) => a + Math.random() * (b - a);
+
+  function newEmber() {
+    return { x: Math.random() * w, y: h + Math.random() * h * .6, r: rnd(.5, 2.2) * dpr,
+      s: rnd(.12, .46) * dpr, a: rnd(.2, .65), p: Math.random() * 6.28, violet: Math.random() < .32 };
+  }
+  function resize() {
+    const r = c.getBoundingClientRect();
+    w = c.width = Math.max(1, r.width * dpr);
+    h = c.height = Math.max(1, r.height * dpr);
+    embers = Array.from({ length: Math.min(70, Math.max(20, Math.round(w * h / (46000 * dpr)))) }, newEmber);
+  }
+  function frame() {
+    ctx.clearRect(0, 0, w, h);
+    for (const q of embers) {
+      q.y -= q.s; q.p += .012; q.x += Math.sin(q.p) * .38 * dpr;
+      if (q.y < -12) { Object.assign(q, newEmber()); q.y = h + 12; }
+      ctx.beginPath(); ctx.arc(q.x, q.y, q.r, 0, 6.284);
+      ctx.fillStyle = `rgba(${q.violet ? "155,123,255" : "245,196,81"},${(q.a * (.55 + .45 * Math.sin(q.p * 2))).toFixed(3)})`;
+      ctx.fill();
+    }
+    requestAnimationFrame(frame);
+  }
+  addEventListener("resize", resize, { passive: true });
+  resize(); requestAnimationFrame(frame);
+})();
+
+/* =====================================================================
+   LABA-LABA PENGGEROGOT JUDUL
+   Bingkai layar — mobile mau pun desktop — dipakai sebagai temboknya:
+   kanvas fixed selebar viewport, laba-laba merayapinya, lalu menggerogoti
+   huruf judul sampai rontok. Huruf tumbuh kembali beberapa detik kemudian.
+   ===================================================================== */
+(function arachnids() {
+  const c = $("#webFx");
+  if (!c || REDUCED) return;
+  const ctx = c.getContext("2d");
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  let W = 0, H = 0, bots = [], crumbs = [], webs = [], last = performance.now();
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const approach = (v, t, k) => v + (t - v) * Math.min(1, k);
+  const clamp = (v, a, b) => Math.min(Math.max(v, a), b);
 
   /* titik tempel dan posisi istirahat delapan kaki, dalam koordinat badan */
   const LEG_PLAN = [];
@@ -1091,26 +1182,118 @@ function renderBracket() {
     side, ax: 7.5 - i * 4.4, ay: side * 3.2,
     ox: 15 - i * 9.5, oy: side * (15 + (i === 0 || i === 3 ? 2.5 : 0))
   });
-
-  const rnd = (a, b) => a + Math.random() * (b - a);
-  const approach = (v, t, k) => v + (t - v) * Math.min(1, k);
-
-  function newEmber() {
-    return { x: Math.random() * w, y: h + Math.random() * h * .6, r: rnd(.5, 2.2) * dpr,
-      s: rnd(.12, .46) * dpr, a: rnd(.2, .65), p: Math.random() * 6.28, violet: Math.random() < .32 };
+  function bodyToWorld(b, ox, oy) {
+    const cs = Math.cos(b.a), sn = Math.sin(b.a);
+    return { x: b.x + (ox * cs - oy * sn) * b.scale, y: b.y + (ox * sn + oy * cs) * b.scale };
+  }
+  /* dua ruas kaki, lutut dihitung agar menekuk ke atas seperti laba-laba */
+  function knee(ax, ay, fx, fy, l1, l2) {
+    const dx = fx - ax, dy = fy - ay;
+    const d = Math.min(Math.hypot(dx, dy), l1 + l2 - .001) || .001;
+    const base = Math.atan2(dy, dx);
+    const cos = clamp((l1 * l1 + d * d - l2 * l2) / (2 * l1 * d), -1, 1);
+    const ang = base - Math.acos(cos);
+    return { x: ax + Math.cos(ang) * l1, y: ay + Math.sin(ang) * l1 };
   }
 
+  /* ---------- huruf judul sebagai santapan ---------- */
+  const letters = new Map();          /* elemen -> kotak posisinya di layar */
+  let needScan = true, goneCount = 0;
+  const BITES_TO_FALL = 7;            /* gigitan sampai satu huruf rontok */
+
+  function scanLetters() {
+    letters.clear();
+    const h1 = $("#heroTitle");
+    if (!h1) return;
+    const page = h1.closest(".page");
+    if (page && !page.classList.contains("active")) return;
+    for (const el of $$(".ch", h1)) {
+      if (!el.classList.contains("settled") || el.dataset.gone === "1") continue;
+      const r = el.getBoundingClientRect();
+      if (r.width < 5 || r.height < 8) continue;
+      if (r.bottom < -60 || r.top > H + 60) continue;
+      letters.set(el, { x: r.left, y: r.top, w: r.width, h: r.height });
+    }
+  }
+
+  /* bekas gigitan dilubangi lewat mask, koordinat lokal terhadap hurufnya */
+  function paintBites(el) {
+    const list = el._bites || [];
+    if (!list.length) { el.style.webkitMaskImage = ""; el.style.maskImage = ""; return; }
+    const g = list.map(o =>
+      `radial-gradient(circle ${o.r.toFixed(1)}px at ${o.x.toFixed(1)}px ${o.y.toFixed(1)}px,` +
+      `rgba(0,0,0,0) 0 ${(o.r * .78).toFixed(1)}px,#000 ${o.r.toFixed(1)}px)`).join(",");
+    el.style.webkitMaskImage = g; el.style.maskImage = g;
+    el.style.webkitMaskComposite = "source-in"; el.style.maskComposite = "intersect";
+  }
+  function regrowLetter(el) {
+    el._bites = []; paintBites(el);
+    if (el.dataset.gone === "1") goneCount = Math.max(0, goneCount - 1);
+    el.dataset.gone = "0";
+    el.classList.remove("eaten", "gnaw");
+    el.classList.add("regrow");
+    setTimeout(() => el.classList.remove("regrow"), 800);
+    needScan = true;
+  }
+  function newCrumb(x, y) {
+    return { x, y, vx: rnd(-40, 40), vy: rnd(-55, 6), r: rnd(.9, 2.4),
+      life: rnd(.7, 1.5), max: 1.5, col: Math.random() < .26 ? "155,123,255" : "245,196,81" };
+  }
+  function bite(el, box, wx, wy, s) {
+    el._bites = el._bites || [];
+    el._bites.push({
+      x: clamp(wx - box.x, 1, box.w - 1),
+      y: clamp(wy - box.y, 1, box.h - 1),
+      r: rnd(5, 9) * (.75 + s * .55)
+    });
+    paintBites(el);
+    for (let i = 0; i < 6; i++) crumbs.push(newCrumb(wx, wy));
+    if (el._bites.length >= BITES_TO_FALL) {
+      /* judul harus tetap terbaca: hanya sebagian kecil huruf boleh rontok */
+      const maxGone = Math.max(1, Math.round((letters.size + goneCount) * .18));
+      if (goneCount >= maxGone) { el._bites.shift(); paintBites(el); return true; }
+      goneCount++;
+      el.dataset.gone = "1";
+      el.classList.remove("gnaw"); el.classList.add("eaten");
+      for (let i = 0; i < 12; i++) crumbs.push(newCrumb(box.x + box.w / 2, box.y + box.h / 2));
+      setTimeout(() => regrowLetter(el), rnd(2200, 3600));
+      needScan = true;
+      return true;
+    }
+    return false;
+  }
+
+  /* ---------- laba-laba ---------- */
+  function claimedLetters() {
+    const s = new Set();
+    for (const b of bots) if (b.targetEl) s.add(b.targetEl);
+    return s;
+  }
+  function pickTarget(b) {
+    if (b.targetEl) { b.targetEl.classList.remove("gnaw"); b.targetEl = null; }
+    const busy = claimedLetters();
+    const free = [...letters.keys()].filter(el => !busy.has(el));
+    if (free.length) {
+      const el = free[(Math.random() * free.length) | 0], box = letters.get(el);
+      b.targetEl = el;
+      b.lx = rnd(box.w * .18, box.w * .82);
+      b.ly = rnd(box.h * .22, box.h * .82);
+      b.tx = box.x + b.lx; b.ty = box.y + b.ly;
+      b.mode = "hunt";
+    } else {
+      b.mode = "roam";
+      b.tx = rnd(W * .06, W * .94); b.ty = rnd(H * .1, H * .9);
+    }
+  }
   function newBot() {
-    const depth = Math.random();
-    const b = {
-      depth, scale: (.55 + depth * .85) * dpr,
-      x: rnd(0, w), y: h * (.5 + .46 * depth),
-      a: Math.random() * 6.28, sp: 0,
-      maxsp: rnd(.5, 1.0) * dpr * (.55 + depth * .7),
-      turn: rnd(1.1, 2.0), pause: rnd(0, 2.4), tx: 0, ty: 0, blink: rnd(0, 4),
-      legs: []
-    };
-    pickTarget(b);
+    const base = W < 680 ? .66 : W < 1100 ? .82 : .95;
+    const b = { scale: base * rnd(.85, 1.2), x: rnd(W * .12, W * .88), y: -rnd(30, 170),
+      a: Math.PI / 2, sp: 0, maxsp: 0, turn: rnd(2.2, 3.6), mode: "drop",
+      anchorX: 0, dropTo: rnd(H * .16, H * .55),
+      chew: 0, chomp: 0, biteT: 0, pause: 0, tx: 0, ty: 0, lx: 0, ly: 0,
+      targetEl: null, blink: rnd(0, 4), legs: [] };
+    b.maxsp = rnd(54, 86) * b.scale;
+    b.anchorX = b.x;
     for (const p of LEG_PLAN) {
       const f = bodyToWorld(b, p.ox, p.oy);
       b.legs.push({ p, fx: f.x, fy: f.y, sx: f.x, sy: f.y, tx: f.x, ty: f.y, st: -1 });
@@ -1118,92 +1301,130 @@ function renderBracket() {
     return b;
   }
 
-  function bodyToWorld(b, ox, oy) {
-    const cs = Math.cos(b.a), sn = Math.sin(b.a);
-    return { x: b.x + (ox * cs - oy * sn) * b.scale, y: b.y + (ox * sn + oy * cs) * b.scale };
-  }
-  function pickTarget(b) {
-    b.tx = rnd(w * .04, w * .96);
-    b.ty = rnd(h * .42, h * .97);
-  }
-
-  function updateBot(b, dt) {
-    if (b.pause > 0) { b.pause -= dt; b.sp = approach(b.sp, 0, dt * 3.4); }
-    else {
-      b.sp = approach(b.sp, b.maxsp, dt * 1.7);
-      if (Math.hypot(b.tx - b.x, b.ty - b.y) < 26 * b.scale) {
-        pickTarget(b);
-        if (Math.random() < .45) b.pause = rnd(.5, 2.6);
-      }
-    }
-    const want = Math.atan2(b.ty - b.y, b.tx - b.x);
-    let diff = ((want - b.a + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
-    const lim = b.turn * dt;
-    b.a += Math.max(-lim, Math.min(lim, diff));
-
-    const step = b.sp * dt * 60;
-    b.x += Math.cos(b.a) * step;
-    b.y += Math.sin(b.a) * step;
-    if (b.x < -60 || b.x > w + 60 || b.y < h * .38 || b.y > h * 1.02) { pickTarget(b); b.pause = 0; }
-
-    /* langkah kaki: hanya beberapa kaki melangkah bersamaan, sisanya menahan badan */
+  /* langkah kaki: hanya beberapa kaki melangkah, sisanya menahan badan */
+  function updateLegs(b, dt) {
     const moving = b.legs.filter(l => l.st >= 0).length;
     b.legs.forEach((l, i) => {
       if (l.st < 0) {
         const ideal = bodyToWorld(b, l.p.ox, l.p.oy);
         const far = Math.hypot(ideal.x - l.fx, ideal.y - l.fy);
-        const neighbourBusy = (b.legs[i - 1]?.p.side === l.p.side && b.legs[i - 1].st >= 0)
+        const busy = (b.legs[i - 1]?.p.side === l.p.side && b.legs[i - 1].st >= 0)
           || (b.legs[i + 1]?.p.side === l.p.side && b.legs[i + 1].st >= 0);
-        if (far > 12 * b.scale && moving < 3 && !neighbourBusy) {
+        if (far > 11 * b.scale && moving < 3 && !busy) {
           l.st = 0; l.sx = l.fx; l.sy = l.fy;
           l.tx = ideal.x + Math.cos(b.a) * 7 * b.scale;
           l.ty = ideal.y + Math.sin(b.a) * 7 * b.scale;
         }
       } else {
-        l.st += dt / .17;
+        l.st += dt / .16;
         if (l.st >= 1) { l.st = -1; l.fx = l.tx; l.fy = l.ty; }
         else {
           const t = l.st, e = t * t * (3 - 2 * t);
           l.fx = l.sx + (l.tx - l.sx) * e;
-          l.fy = l.sy + (l.ty - l.sy) * e - Math.sin(t * Math.PI) * 8 * b.scale;
+          l.fy = l.sy + (l.ty - l.sy) * e - Math.sin(t * Math.PI) * 7 * b.scale;
         }
       }
     });
-    b.blink -= dt;
-    if (b.blink < -.14) b.blink = rnd(2.5, 6);
   }
 
-  /* dua ruas kaki, lutut dihitung agar menekuk ke atas seperti laba-laba */
-  function knee(ax, ay, fx, fy, l1, l2) {
-    let dx = fx - ax, dy = fy - ay;
-    let d = Math.min(Math.hypot(dx, dy), l1 + l2 - .001) || .001;
-    const base = Math.atan2(dy, dx);
-    const cos = Math.max(-1, Math.min(1, (l1 * l1 + d * d - l2 * l2) / (2 * l1 * d)));
-    const ang = base - Math.acos(cos);
-    return { x: ax + Math.cos(ang) * l1, y: ay + Math.sin(ang) * l1 };
+  function updateBot(b, dt) {
+    b.blink -= dt; if (b.blink < -.14) b.blink = rnd(2.5, 6);
+
+    /* turun dulu dari sisi atas bingkai lewat benang sutra */
+    if (b.mode === "drop") {
+      b.a = Math.PI / 2;
+      b.y += 170 * b.scale * dt;
+      if (b.y >= b.dropTo) pickTarget(b);
+      updateLegs(b, dt);
+      return;
+    }
+
+    /* sasaran ikut bergeser saat halaman digulir atau layar diputar */
+    if (b.targetEl) {
+      const box = letters.get(b.targetEl);
+      if (!box) pickTarget(b);
+      else { b.tx = box.x + b.lx; b.ty = box.y + b.ly; }
+    }
+
+    if (b.mode === "chew") {
+      const box = b.targetEl && letters.get(b.targetEl);
+      if (!box) { pickTarget(b); updateLegs(b, dt); return; }
+      b.sp = approach(b.sp, 0, dt * 7);
+      b.chomp += dt * 15;
+      b.chew -= dt; b.biteT -= dt;
+      /* badan menempel tepat di depan titik gigitan */
+      b.x = approach(b.x, b.tx - Math.cos(b.a) * 12 * b.scale, dt * 9);
+      b.y = approach(b.y, b.ty - Math.sin(b.a) * 12 * b.scale, dt * 9);
+      if (b.biteT <= 0) {
+        b.biteT = rnd(.42, .68);
+        const m = bodyToWorld(b, 15, 0);
+        if (bite(b.targetEl, box, m.x, m.y, b.scale)) { pickTarget(b); b.pause = rnd(.5, 1.6); }
+      }
+      if (b.mode === "chew" && b.chew <= 0) { pickTarget(b); b.pause = rnd(.6, 1.8); }
+      updateLegs(b, dt);
+      return;
+    }
+
+    /* berjalan menuju sasaran */
+    if (b.pause > 0) { b.pause -= dt; b.sp = approach(b.sp, 0, dt * 4); }
+    else b.sp = approach(b.sp, b.maxsp, dt * 2.1);
+
+    const want = Math.atan2(b.ty - b.y, b.tx - b.x);
+    const diff = ((want - b.a + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
+    const lim = b.turn * dt;
+    b.a += clamp(diff, -lim, lim);
+    b.x += Math.cos(b.a) * b.sp * dt;
+    b.y += Math.sin(b.a) * b.sp * dt;
+
+    /* bingkai layar adalah temboknya — tidak boleh keluar */
+    const m = 14 * b.scale;
+    if (b.x < m) { b.x = m; b.tx = rnd(W * .3, W * .9); }
+    if (b.x > W - m) { b.x = W - m; b.tx = rnd(W * .1, W * .7); }
+    if (b.y < m) { b.y = m; b.ty = rnd(H * .3, H * .9); }
+    if (b.y > H - m) { b.y = H - m; b.ty = rnd(H * .1, H * .7); }
+
+    const d = Math.hypot(b.tx - b.x, b.ty - b.y);
+    if (b.mode === "hunt" && b.targetEl && d < 15 * b.scale) {
+      b.mode = "chew"; b.chew = rnd(2.2, 4.4); b.biteT = .3;
+      b.targetEl.classList.add("gnaw");
+    } else if (b.mode === "roam") {
+      if (letters.size && Math.random() < dt * 1.1) pickTarget(b);
+      else if (d < 26) {
+        b.tx = rnd(W * .06, W * .94); b.ty = rnd(H * .1, H * .9);
+        b.pause = rnd(0, 1.4);
+      }
+    }
+    updateLegs(b, dt);
   }
 
   function drawBot(b) {
-    const s = b.scale, alpha = .42 + b.depth * .5;
+    const s = b.scale;
     ctx.save();
-    ctx.globalAlpha = alpha;
 
-    /* bayangan di bawah badan */
+    /* benang sutra saat turun dari atas bingkai */
+    if (b.mode === "drop") {
+      ctx.strokeStyle = "rgba(205,196,255,.4)"; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(b.anchorX, 0); ctx.lineTo(b.x, b.y); ctx.stroke();
+    }
+
+    /* bayangan tipis di tembok */
     ctx.beginPath();
-    ctx.ellipse(b.x, b.y + 5 * s, 17 * s, 5 * s, 0, 0, 6.284);
-    ctx.fillStyle = "rgba(4,2,10,.5)"; ctx.fill();
+    ctx.ellipse(b.x + 3 * s, b.y + 5 * s, 17 * s, 6 * s, 0, 0, 6.284);
+    ctx.fillStyle = "rgba(4,2,10,.42)"; ctx.fill();
 
     /* kaki */
     ctx.lineCap = "round";
     for (const l of b.legs) {
       const at = bodyToWorld(b, l.p.ax, l.p.ay);
       const k = knee(at.x, at.y, l.fx, l.fy, 13 * s, 15 * s);
-      ctx.strokeStyle = "#6F66A8"; ctx.lineWidth = 2.1 * s;
+      ctx.strokeStyle = "#7A6FB8"; ctx.lineWidth = 2.1 * s;
       ctx.beginPath(); ctx.moveTo(at.x, at.y); ctx.lineTo(k.x, k.y); ctx.stroke();
-      ctx.strokeStyle = "#544C86"; ctx.lineWidth = 1.5 * s;
+      ctx.strokeStyle = "#5C5390"; ctx.lineWidth = 1.5 * s;
       ctx.beginPath(); ctx.moveTo(k.x, k.y); ctx.lineTo(l.fx, l.fy); ctx.stroke();
+      ctx.globalAlpha = .75;
       ctx.beginPath(); ctx.arc(k.x, k.y, 1.7 * s, 0, 6.284);
-      ctx.fillStyle = "#F5C451"; ctx.globalAlpha = alpha * .8; ctx.fill(); ctx.globalAlpha = alpha;
+      ctx.fillStyle = "#F5C451"; ctx.fill();
+      ctx.globalAlpha = 1;
       if (l.st < 0) { ctx.beginPath(); ctx.arc(l.fx, l.fy, 1.3 * s, 0, 6.284); ctx.fillStyle = "#3E3770"; ctx.fill(); }
     }
 
@@ -1221,43 +1442,127 @@ function renderBracket() {
     ctx.fillStyle = "#231A50"; ctx.fill();
     ctx.strokeStyle = "#4A3F8C"; ctx.lineWidth = 1 * s; ctx.stroke();
 
-    /* mata dan sungut */
+    /* mata */
     const eye = b.blink < 0 ? .15 : 1;
     ctx.beginPath(); ctx.arc(9 * s, 0, 2.4 * s * eye, 0, 6.284);
-    ctx.fillStyle = "#FFD87A"; ctx.fill();
-    ctx.shadowColor = "#F5C451"; ctx.shadowBlur = 12 * s;
+    ctx.fillStyle = b.mode === "chew" ? "#FF8FA6" : "#FFD87A";
+    ctx.shadowColor = b.mode === "chew" ? "#FF4D6D" : "#F5C451"; ctx.shadowBlur = 12 * s;
     ctx.fill(); ctx.shadowBlur = 0;
-    ctx.strokeStyle = "#5C5296"; ctx.lineWidth = 1 * s;
-    ctx.beginPath(); ctx.moveTo(8 * s, -3 * s); ctx.lineTo(15 * s, -7 * s); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(8 * s, 3 * s); ctx.lineTo(15 * s, 7 * s); ctx.stroke();
+
+    /* taring: mengatup-ngatup saat menggerogoti huruf */
+    const open = b.mode === "chew" ? (Math.sin(b.chomp) * .5 + .5) * 4.8 : .7;
+    ctx.strokeStyle = "#C9A2FF"; ctx.lineWidth = 1.5 * s; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(9 * s, -2 * s); ctx.lineTo(16.5 * s, (-2 - open) * s); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(9 * s, 2 * s); ctx.lineTo(16.5 * s, (2 + open) * s); ctx.stroke();
     ctx.restore();
   }
 
-  function resize() {
-    const r = c.getBoundingClientRect();
-    w = c.width = Math.max(1, r.width * dpr);
-    h = c.height = Math.max(1, r.height * dpr);
-    embers = Array.from({ length: Math.min(70, Math.max(20, Math.round(w * h / (46000 * dpr)))) }, newEmber);
-    const n = w / dpr < 700 ? 3 : w / dpr < 1100 ? 4 : 6;
-    bots = Array.from({ length: n }, newBot);
+  /* ---------- remah huruf yang berjatuhan ---------- */
+  function updateCrumbs(dt) {
+    for (let i = crumbs.length - 1; i >= 0; i--) {
+      const p = crumbs[i];
+      p.vy += 250 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt;
+      if (p.life <= 0 || p.y > H + 24) crumbs.splice(i, 1);
+    }
   }
-
-  function frame(now) {
-    const dt = Math.min(.05, (now - last) / 1000); last = now;
-    ctx.clearRect(0, 0, w, h);
-    for (const q of embers) {
-      q.y -= q.s; q.p += .012; q.x += Math.sin(q.p) * .38 * dpr;
-      if (q.y < -12) { Object.assign(q, newEmber()); q.y = h + 12; }
-      ctx.beginPath(); ctx.arc(q.x, q.y, q.r, 0, 6.284);
-      ctx.fillStyle = `rgba(${q.violet ? "155,123,255" : "245,196,81"},${(q.a * (.55 + .45 * Math.sin(q.p * 2))).toFixed(3)})`;
+  function drawCrumbs() {
+    for (const p of crumbs) {
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.284);
+      ctx.fillStyle = `rgba(${p.col},${clamp(p.life / p.max, 0, 1).toFixed(2)})`;
       ctx.fill();
     }
-    bots.sort((a, b) => a.depth - b.depth);
+  }
+
+  /* ---------- sarang di sudut bingkai ---------- */
+  function buildWebs() {
+    const r = Math.min(W, H) * (W < 680 ? .34 : .24);
+    webs = [{ x: 0, y: 0, a: 0, r }, { x: W, y: 0, a: Math.PI / 2, r: r * .78 }];
+    if (W > 900) webs.push({ x: 0, y: H, a: -Math.PI / 2, r: r * .66 });
+  }
+  function drawWebs() {
+    ctx.save();
+    ctx.globalAlpha = .17; ctx.strokeStyle = "#9188CF"; ctx.lineWidth = 1;
+    for (const wb of webs) {
+      ctx.save(); ctx.translate(wb.x, wb.y); ctx.rotate(wb.a);
+      const n = 7;
+      for (let i = 0; i <= n; i++) {
+        const ang = (Math.PI / 2) * (i / n);
+        ctx.beginPath(); ctx.moveTo(0, 0);
+        ctx.lineTo(Math.cos(ang) * wb.r, Math.sin(ang) * wb.r); ctx.stroke();
+      }
+      for (let rr = wb.r * .24; rr < wb.r; rr += wb.r * .19) {
+        ctx.beginPath();
+        for (let i = 0; i <= n; i++) {
+          const ang = (Math.PI / 2) * (i / n);
+          const d = rr - Math.sin((i / n) * Math.PI) * rr * .07;
+          const x = Math.cos(ang) * d, y = Math.sin(ang) * d;
+          i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+        }
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+
+  /* ---------- ukuran bingkai & putaran gambar ---------- */
+  function resize() {
+    W = innerWidth; H = innerHeight;
+    c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
+    c.style.width = W + "px"; c.style.height = H + "px";
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    buildWebs();
+    const n = W < 680 ? 2 : W < 1100 ? 3 : 5;
+    if (!bots.length) bots = Array.from({ length: n }, newBot);
+    else {
+      while (bots.length > n) {
+        const b = bots.pop();
+        if (b.targetEl) b.targetEl.classList.remove("gnaw");
+      }
+      while (bots.length < n) bots.push(newBot());
+      for (const b of bots) { b.x = clamp(b.x, 14, W - 14); b.y = clamp(b.y, 14, H - 14); }
+    }
+    needScan = true;
+  }
+
+  /* bekas gigitan lama perlahan menutup lagi supaya judul tetap terbaca */
+  function healOne() {
+    for (const el of letters.keys()) {
+      if (el.classList.contains("gnaw")) continue;
+      if (el._bites && el._bites.length) { el._bites.shift(); paintBites(el); return; }
+    }
+  }
+
+  let scanT = 0, healT = 3;
+  function frame(now) {
+    const dt = Math.min(.05, (now - last) / 1000); last = now;
+    scanT -= dt; healT -= dt;
+    if (healT <= 0) { healT = 3.2; healOne(); }
+    if (needScan || scanT <= 0) { scanLetters(); needScan = false; scanT = .3; }
+    ctx.clearRect(0, 0, W, H);
+    drawWebs();
+    updateCrumbs(dt); drawCrumbs();
     for (const b of bots) { updateBot(b, dt); drawBot(b); }
     requestAnimationFrame(frame);
   }
 
   addEventListener("resize", resize, { passive: true });
+  addEventListener("orientationchange", resize, { passive: true });
+  addEventListener("scroll", () => { needScan = true; }, { passive: true });
+  addEventListener("titlechange", () => { needScan = true; });
+
+  /* disenggol jari atau kursor: laba-laba kabur sebentar */
+  addEventListener("pointerdown", e => {
+    for (const b of bots) {
+      if (b.mode === "drop") continue;
+      if (Math.hypot(e.clientX - b.x, e.clientY - b.y) > 110) continue;
+      if (b.targetEl) { b.targetEl.classList.remove("gnaw"); b.targetEl = null; }
+      b.mode = "roam"; b.pause = 0; b.sp = b.maxsp * 1.7;
+      b.tx = clamp(b.x + (b.x - e.clientX) * 3, 24, W - 24);
+      b.ty = clamp(b.y + (b.y - e.clientY) * 3, 24, H - 24);
+    }
+  }, { passive: true });
+
   resize(); requestAnimationFrame(frame);
 })();
 
