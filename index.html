@@ -322,6 +322,9 @@ tr.zone-out td{opacity:.55}
 .streak b.l{background:rgba(255,77,109,.14);color:var(--flame)}
 .zone-legend{display:flex;gap:22px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-top:18px;padding-top:16px;border-top:1px solid var(--line-soft)}
 .zone-legend i{display:inline-block;width:10px;height:10px;margin-right:7px;vertical-align:middle;border-radius:2px}
+.fmt-chip{display:inline-flex;align-items:center;padding:3px 9px;border:1px solid var(--line);border-radius:99px;
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;color:var(--muted);background:rgba(155,123,255,.07)}
+.fmt-chip:empty{display:none}
 
 /* ---------- jadwal ---------- */
 .round-head{display:flex;align-items:center;gap:14px;margin:32px 0 12px;font-family:var(--mono);font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--dim)}
@@ -459,7 +462,7 @@ footer.site{border-top:1px solid var(--line-soft);padding:30px 0;color:var(--dim
       </div>
       <p class="eyebrow reveal" id="heroSeason">Season 1</p>
       <h1 class="reveal" id="heroTitle">KLINKLIN<span class="tail">MOBILE LEGEND</span></h1>
-      <p class="lead reveal">Liga penuh, semua tim saling bertemu dua kali — kandang dan tandang, Best of 3.
+      <p class="lead reveal" id="heroLead">Liga penuh, semua tim saling bertemu dua kali — kandang dan tandang, Best of 3.
         Enam teratas lanjut ke playoff double elimination. Satu kekalahan di lower bracket, perjalanan berakhir.</p>
       <div class="cta reveal">
         <button class="btn" data-go="daftar">Daftarkan tim</button>
@@ -480,8 +483,8 @@ footer.site{border-top:1px solid var(--line-soft);padding:30px 0;color:var(--dim
     <div class="grid g3">
       <div class="card" data-reveal>
         <p class="eyebrow">Babak reguler</p>
-        <h3 style="margin:12px 0 8px">Double round robin</h3>
-        <p class="muted small" style="margin:0">Setiap tim bertemu semua lawan dua kali. Satu match adalah seri Best of 3:
+        <h3 style="margin:12px 0 8px" id="fmtTitle">Double round robin</h3>
+        <p class="muted small" style="margin:0" id="fmtDesc">Setiap tim bertemu semua lawan dua kali. Satu match adalah seri Best of 3:
           menang seri dapat 1 Match Point, kalah 0.</p>
       </div>
       <div class="card" data-reveal>
@@ -566,7 +569,7 @@ footer.site{border-top:1px solid var(--line-soft);padding:30px 0;color:var(--dim
 
 <!-- ================= KLASEMEN ================= -->
 <section class="page" id="page-klasemen"><div class="wrap">
-  <div class="sec-head"><div class="grow"><p class="eyebrow">Babak reguler</p><h2>Klasemen</h2></div></div>
+  <div class="sec-head"><div class="grow"><p class="eyebrow">Babak reguler <span class="fmt-chip js-fmt"></span></p><h2>Klasemen</h2></div></div>
   <div class="card flat" style="padding:8px 16px 20px">
     <div class="table-scroll">
       <table>
@@ -589,7 +592,7 @@ footer.site{border-top:1px solid var(--line-soft);padding:30px 0;color:var(--dim
 <!-- ================= JADWAL ================= -->
 <section class="page" id="page-jadwal"><div class="wrap">
   <div class="sec-head">
-    <div class="grow"><p class="eyebrow">Babak reguler</p><h2>Jadwal & hasil</h2></div>
+    <div class="grow"><p class="eyebrow">Babak reguler <span class="fmt-chip js-fmt"></span></p><h2>Jadwal & hasil</h2></div>
     <select id="roundFilter" style="max-width:220px"></select>
   </div>
   <div id="scheduleList"></div>
@@ -606,6 +609,10 @@ footer.site{border-top:1px solid var(--line-soft);padding:30px 0;color:var(--dim
 <section class="page" id="page-aturan"><div class="wrap">
   <div class="sec-head"><div class="grow"><p class="eyebrow">Regulasi</p><h2>Cara peringkat dihitung</h2></div></div>
   <div class="grid g2">
+    <div class="card" data-reveal>
+      <h3 id="fmtRuleTitle">Format babak reguler</h3>
+      <ul class="rule-list" id="fmtRuleList"></ul>
+    </div>
     <div class="card" data-reveal>
       <h3>Komponen klasemen</h3>
       <ul class="rule-list">
@@ -658,6 +665,8 @@ footer.site{border-top:1px solid var(--line-soft);padding:30px 0;color:var(--dim
 const SUPABASE_URL = "https://ywhpmgzxxuobxnbnripx.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_KjDOz2PIfaZUX2-3IpGToQ_gunvvGXd";
 const ROLES = ["Gold Laner", "EXP Laner", "Mid Laner", "Jungler", "Roamer"];
+/* format bawaan mode demo: "double" (kandang-tandang) atau "single" (sekali bertemu) */
+const DEMO_FORMAT = "double";
 /* ===================================================================== */
 
 const DEMO = SUPABASE_URL.includes("xxxx") || !window.supabase;
@@ -823,20 +832,21 @@ function demoData() {
     id: t.id + i, team_id: t.id, slot: i + 1, name: "Pemain " + (i + 1), ign: t.tag + "·" + ["Rex","Vayu","Sora","Nala","Kudo"][i],
     role: r, is_captain: i === 0, is_sub: false })));
   const ids = teams.map(t => t.id), matches = [];
-  const rounds = generateSchedule(ids);
+  const rounds = generateSchedule(ids, DEMO_FORMAT === "single" ? 1 : 2);
+  const cut = Math.max(1, Math.round(rounds.length * .62));
   rounds.forEach(r => r.pairs.forEach(([h, a], i) => {
     const seed = (r.round * 7 + i * 3) % 5;
     matches.push({ id: r.round + "-" + i, round: r.round, leg: r.leg, home_team_id: h, away_team_id: a, best_of: 3,
-      status: r.round <= 7 ? "finished" : "scheduled",
-      home_score: r.round <= 7 ? (seed % 2 ? 2 : seed === 0 ? 0 : 1) : 0,
-      away_score: r.round <= 7 ? (seed % 2 ? (seed === 3 ? 1 : 0) : 2) : 0,
+      status: r.round <= cut ? "finished" : "scheduled",
+      home_score: r.round <= cut ? (seed % 2 ? 2 : seed === 0 ? 0 : 1) : 0,
+      away_score: r.round <= cut ? (seed % 2 ? (seed === 3 ? 1 : 0) : 2) : 0,
       scheduled_at: new Date(Date.now() + r.round * 864e5).toISOString() });
   }));
   matches.forEach(m => { if (m.status === "finished" && m.home_score === m.away_score) { m.home_score = 2; m.away_score = 1; } });
   return { teams, players, matches,
-    settings: { tournament_name: "KLINKLIN MOBILE LEGEND", season: "Season 1 · 2026", organizer: "Panitia Turnamen", registration_open: true, playoff_slots: 6 } };
+    settings: { tournament_name: "KLINKLIN MOBILE LEGEND", season: "Season 1 · 2026", organizer: "Panitia Turnamen", registration_open: true, playoff_slots: 6, match_format: DEMO_FORMAT } };
 }
-function generateSchedule(teamIds) {
+function generateSchedule(teamIds, legCount = 2) {
   const list = [...teamIds]; if (list.length < 2) return [];
   if (list.length % 2) list.push(null);
   const n = list.length, half = n / 2, total = n - 1, rot = list.slice(1), legs = [];
@@ -847,7 +857,8 @@ function generateSchedule(teamIds) {
   }
   const out = [];
   legs.forEach((p, i) => out.push({ round: i + 1, leg: 1, pairs: p }));
-  legs.forEach((p, i) => out.push({ round: total + i + 1, leg: 2, pairs: p.map(([h, a]) => [a, h]) }));
+  /* putaran kedua (tandang) hanya dibuat kalau formatnya double round robin */
+  if (legCount >= 2) legs.forEach((p, i) => out.push({ round: total + i + 1, leg: 2, pairs: p.map(([h, a]) => [a, h]) }));
   return out;
 }
 
@@ -873,11 +884,11 @@ async function loadAll() {
       sb.from("bracket_matches").select("*").order("round").order("order_no")
     ]);
     if (t.error) return toast("Gagal memuat data: " + t.error.message, "err");
-    SETTINGS = s.data || { tournament_name: "KLINKLIN MOBILE LEGEND", playoff_slots: 6, registration_open: true };
+    SETTINGS = s.data || { tournament_name: "KLINKLIN MOBILE LEGEND", playoff_slots: 6, registration_open: true, match_format: "double" };
     TEAMS = t.data || []; PLAYERS = p.data || []; MATCHES = m.data || []; BRACKET = b.data || [];
   }
   STANDINGS = computeStandings(TEAMS.filter(t => t.status === "approved"), MATCHES);
-  renderHeader(); renderTicker(); renderRegState(); renderTeams();
+  renderHeader(); renderFormatCopy(); renderTicker(); renderRegState(); renderTeams();
   renderStandings(); renderSchedule(); renderBracket();
 }
 
@@ -907,6 +918,52 @@ function countTo(el, target) {
     el.textContent = Math.round(from + (target - from) * e);
     if (k < 1) requestAnimationFrame(step);
   })(t0);
+}
+
+/* ---------- format babak reguler ---------- */
+const NUM_ID = { 2: "Dua", 3: "Tiga", 4: "Empat", 5: "Lima", 6: "Enam", 8: "Delapan", 10: "Sepuluh", 12: "Dua belas" };
+
+/* "single" = sekali bertemu · "double" = kandang & tandang.
+   Kalau panitia belum mengisi settingnya, format ditebak dari jadwal yang ada. */
+function tourFormat() {
+  const f = String(SETTINGS.match_format || SETTINGS.format || "").toLowerCase();
+  if (f === "single" || f === "1" || f === "one") return "single";
+  if (f === "double" || f === "2" || f === "home_away") return "double";
+  if (!MATCHES.length) return "double";
+  return MATCHES.some(m => +m.leg === 2) ? "double" : "single";
+}
+
+function renderFormatCopy() {
+  const single = tourFormat() === "single";
+  const title = single ? "Single round robin" : "Double round robin";
+  const slots = SETTINGS.playoff_slots || 6;
+  const word = NUM_ID[slots] || slots;
+  const n = TEAMS.filter(t => t.status === "approved").length;
+
+  $("#heroLead").textContent = single
+    ? `Liga penuh, semua tim saling bertemu sekali saja — satu pertemuan per lawan, Best of 3. `
+      + `${word} teratas lanjut ke playoff double elimination. Satu kekalahan di lower bracket, perjalanan berakhir.`
+    : `Liga penuh, semua tim saling bertemu dua kali — kandang dan tandang, Best of 3. `
+      + `${word} teratas lanjut ke playoff double elimination. Satu kekalahan di lower bracket, perjalanan berakhir.`;
+
+  $("#fmtTitle").textContent = title;
+  $("#fmtDesc").textContent = single
+    ? "Setiap tim bertemu semua lawan satu kali saja. Satu match adalah seri Best of 3: menang seri dapat 1 Match Point, kalah 0."
+    : "Setiap tim bertemu semua lawan dua kali. Satu match adalah seri Best of 3: menang seri dapat 1 Match Point, kalah 0.";
+
+  $("#fmtRuleTitle").textContent = "Format babak reguler · " + title;
+  const perTeam = n > 1 ? (single ? n - 1 : (n - 1) * 2) : null;
+  $("#fmtRuleList").innerHTML = [
+    single
+      ? `<li><b>Sekali bertemu</b> — setiap tim menghadapi seluruh lawan tepat satu kali. Tidak ada putaran kandang dan tandang.</li>`
+      : `<li><b>Dua kali bertemu</b> — setiap tim menghadapi seluruh lawan dua kali: satu di putaran kandang, satu di putaran tandang.</li>`,
+    perTeam
+      ? `<li><b>Beban main</b> — dengan ${n} tim terdaftar, tiap tim memainkan ${perTeam} seri di babak reguler.</li>`
+      : `<li><b>Beban main</b> — jumlah seri per tim mengikuti banyaknya peserta yang lolos verifikasi.</li>`,
+    `<li><b>Satu seri</b> — digelar Best of 3; pemenang seri mendapat 1 Match Point, yang kalah 0.</li>`
+  ].join("");
+
+  $$(".js-fmt").forEach(el => el.textContent = title);
 }
 
 function renderHeader() {
@@ -1069,9 +1126,11 @@ function renderSchedule() {
     return;
   }
   const pick = sel.value === "all" ? rounds : [+sel.value];
+  const dbl = tourFormat() === "double";
   $("#scheduleList").innerHTML = pick.map(r => {
     const ms = MATCHES.filter(m => m.round === r);
-    return `<div class="round-head">Ronde ${r} · ${ms[0].leg === 2 ? "putaran tandang" : "putaran kandang"}</div>` + ms.map(m => {
+    const leg = dbl ? ` · ${+ms[0].leg === 2 ? "putaran tandang" : "putaran kandang"}` : "";
+    return `<div class="round-head">Ronde ${r}${leg}</div>` + ms.map(m => {
       const h = teamById(m.home_team_id), a = teamById(m.away_team_id), fin = m.status === "finished";
       return `<div class="match">
         <div class="side ${fin && m.home_score > m.away_score ? "winner" : ""}">${teamCell(h)}</div>
