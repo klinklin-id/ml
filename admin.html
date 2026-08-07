@@ -135,6 +135,18 @@ td.num,th.num{text-align:center;font-family:var(--mono)}
 .empty strong{display:block;font-family:var(--display);font-size:19px;color:var(--ink);letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px}
 .divider{height:1px;background:var(--line-soft);margin:22px 0}
 .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}.row.end{justify-content:flex-end}
+textarea{width:100%;padding:12px 13px;background:rgba(8,5,18,.75);color:var(--ink);border:1px solid var(--line-soft);
+  border-radius:var(--r);font-family:var(--mono);font-size:12.5px;line-height:1.55;resize:vertical}
+textarea:focus{outline:none;border-color:var(--violet);box-shadow:0 0 0 3px rgba(155,123,255,.14)}
+#waOverlay{position:fixed;inset:0;z-index:200;background:rgba(6,4,14,.74);backdrop-filter:blur(5px);
+  display:flex;align-items:center;justify-content:center;padding:18px;animation:fade .25s ease}
+#waBox{width:min(600px,100%);max-height:88vh;overflow:auto;background:var(--panel);border:1px solid var(--line);
+  border-radius:var(--r);padding:24px;box-shadow:0 30px 70px -30px #000}
+#waBox .head{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+#waBox .x{margin-left:auto;background:none;border:0;color:var(--muted);font-size:26px;line-height:1;cursor:pointer;padding:0 4px}
+#waBox .x:hover{color:var(--flame)}
+#waNav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+#waNav button.on{box-shadow:inset 0 0 0 1px var(--gold);color:var(--gold)}
 .toast-box{position:fixed;right:20px;bottom:20px;z-index:99;display:grid;gap:9px}
 .toast{background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--mint);padding:13px 18px;border-radius:var(--r);max-width:340px;box-shadow:var(--shadow);font-size:14px}
 .toast-err{border-left-color:var(--flame)}.toast-warn{border-left-color:var(--gold)}
@@ -204,7 +216,10 @@ td.num,th.num{text-align:center;font-family:var(--mono)}
       <span class="badge gold" id="pendingCount">0 menunggu</span>
     </div>
     <div id="pendingList"></div>
-    <div class="sec-head" style="margin-top:44px"><div class="grow"><p class="eyebrow">Peserta resmi</p><h2>Tim terverifikasi</h2></div></div>
+    <div class="sec-head" style="margin-top:44px">
+      <div class="grow"><p class="eyebrow">Peserta resmi</p><h2>Tim terverifikasi</h2></div>
+      <button class="btn btn-ghost btn-sm" type="button" id="btnWaList">Kirim daftar tim ke WA</button>
+    </div>
     <div id="approvedList"></div>
   </section>
 
@@ -215,8 +230,8 @@ td.num,th.num{text-align:center;font-family:var(--mono)}
       <button class="btn btn-ghost btn-sm" id="btnGenSchedule">Buat ulang jadwal</button>
     </div>
     <div class="card" style="margin-bottom:20px">
-      <p class="muted small" style="margin:0 0 14px">Jadwal disusun otomatis: seluruh tim terverifikasi saling bertemu dua kali,
-        kandang dan tandang. Membuat ulang akan menghapus jadwal dan skor yang ada.
+      <p class="muted small" style="margin:0 0 14px" id="schFmtNote">Jadwal disusun otomatis dari seluruh tim terverifikasi.
+        Membuat ulang akan menghapus jadwal dan skor yang ada.
         Kosongkan kedua kotak skor untuk mengembalikan match ke status belum dimainkan.</p>
       <div class="row">
         <input id="schSearch" placeholder="Cari nama tim…" style="max-width:250px">
@@ -259,6 +274,15 @@ td.num,th.num{text-align:center;font-family:var(--mono)}
         <label class="field"><span>Slot playoff</span><select name="playoff_slots">
           <option value="4">4 tim</option><option value="6">6 tim</option><option value="8">8 tim</option></select></label>
         <label class="field"><span>Pendaftaran</span><select name="registration_open"><option value="true">Dibuka</option><option value="false">Ditutup</option></select></label>
+      </div>
+      <div class="grid g2">
+        <label class="field"><span>Pertemuan antar tim</span><select name="match_format">
+          <option value="double">Dua kali — kandang &amp; tandang</option>
+          <option value="single">Sekali saja — satu pertemuan per tim</option>
+        </select></label>
+        <label class="field"><span>Perkiraan beban babak reguler</span>
+          <div id="fmtHint" class="badge" style="width:100%;justify-content:flex-start;padding:11px 13px;border-radius:var(--r)">—</div>
+        </label>
       </div>
       <div class="grid g3">
         <label class="field"><span>Format babak reguler</span><select name="bo_regular">
@@ -363,7 +387,7 @@ function computeStandings(teams, matches) {
   return rows;
 }
 
-function generateSchedule(teamIds) {
+function generateSchedule(teamIds, legCount = 2) {
   const list = [...teamIds]; if (list.length < 2) return [];
   if (list.length % 2) list.push(null);
   const n = list.length, half = n / 2, total = n - 1, rot = list.slice(1), legs = [];
@@ -374,7 +398,8 @@ function generateSchedule(teamIds) {
   }
   const out = [];
   legs.forEach((p, i) => out.push({ round: i + 1, leg: 1, pairs: p }));
-  legs.forEach((p, i) => out.push({ round: total + i + 1, leg: 2, pairs: p.map(([h, a]) => [a, h]) }));
+  /* putaran tandang hanya dibuat kalau formatnya dua kali bertemu */
+  if (legCount >= 2) legs.forEach((p, i) => out.push({ round: total + i + 1, leg: 2, pairs: p.map(([h, a]) => [a, h]) }));
   return out;
 }
 
@@ -580,7 +605,7 @@ async function loadAll() {
   SETTINGS = s.data || {}; TEAMS = t.data || []; PLAYERS = p.data || [];
   MATCHES = m.data || []; BRACKET = b.data || [];
   STANDINGS = computeStandings(TEAMS.filter(x => x.status === "approved"), MATCHES);
-  renderTeams(); renderSettings(); renderSchedule(); renderBracket();
+  renderTeams(); renderSettings(); renderSchedFmtNote(); renderSchedule(); renderBracket();
 }
 
 /* ---------- tim ---------- */
@@ -630,21 +655,76 @@ function renderSettings() {
   f.organizer.value = SETTINGS.organizer || "";
   f.playoff_slots.value = String(SETTINGS.playoff_slots || 6);
   f.registration_open.value = String(!!SETTINGS.registration_open);
+  f.match_format.value = SETTINGS.match_format === "single" ? "single" : "double";
   f.bo_regular.value = String(SETTINGS.bo_regular || 3);
   f.bo_playoff.value = String(SETTINGS.bo_playoff || 3);
   f.bo_final.value = String(SETTINGS.bo_final || 5);
   $("#resetInfo").textContent = `${MATCHES.length} match reguler · ${BRACKET.length} match playoff`;
+  renderFmtHint();
+}
+
+/* ---------- format pertemuan ---------- */
+const isSingle = () => SETTINGS.match_format === "single";
+const fmtLabel = single => single ? "Single round robin — sekali bertemu" : "Double round robin — kandang & tandang";
+
+/* hitung beban babak reguler untuk format tertentu */
+function fmtHitung(single) {
+  const n = TEAMS.filter(t => t.status === "approved").length;
+  if (n < 2) return null;
+  const genap = n % 2 ? n + 1 : n;
+  return { n, ronde: (genap - 1) * (single ? 1 : 2), match: n * (n - 1) / 2 * (single ? 1 : 2), perTim: (n - 1) * (single ? 1 : 2) };
+}
+function renderFmtHint() {
+  const box = $("#fmtHint"); if (!box) return;
+  const single = $("#settingsForm").match_format.value === "single";
+  const h = fmtHitung(single);
+  box.textContent = h
+    ? `${h.n} tim · ${h.ronde} ronde · ${h.match} match · ${h.perTim} seri per tim`
+    : "Butuh minimal dua tim terverifikasi";
+  const beda = single !== isSingle();
+  box.style.color = beda ? "var(--gold)" : "";
+  box.style.borderColor = beda ? "rgba(245,196,81,.42)" : "";
+  box.title = beda ? "Pilihan ini belum disimpan" : "";
+}
+$("#settingsForm").match_format.addEventListener("change", renderFmtHint);
+
+/* catatan format di tab Jadwal */
+function renderSchedFmtNote() {
+  const el = $("#schFmtNote"); if (!el) return;
+  const single = isSingle();
+  const h = fmtHitung(single);
+  el.innerHTML = `Format aktif: <b style="color:var(--gold)">${esc(fmtLabel(single))}</b>`
+    + (h ? ` — ${h.n} tim, ${h.match} match, ${h.perTim} seri per tim.` : ".")
+    + ` Ubah di tab <b>Setelan</b>. Membuat ulang akan menghapus jadwal dan skor yang ada.`
+    + ` Kosongkan kedua kotak skor untuk mengembalikan match ke status belum dimainkan.`;
 }
 $("#settingsForm").addEventListener("submit", async e => {
   e.preventDefault();
   const f = e.target;
-  const { error } = await sb.from("settings").update({
+  const payload = {
     tournament_name: f.tournament_name.value.trim(), season: f.season.value.trim(),
     organizer: f.organizer.value.trim(), playoff_slots: +f.playoff_slots.value,
+    match_format: f.match_format.value,
     bo_regular: +f.bo_regular.value, bo_playoff: +f.bo_playoff.value, bo_final: +f.bo_final.value,
     registration_open: f.registration_open.value === "true", updated_at: new Date().toISOString()
-  }).eq("id", 1);
+  };
+  const berubah = f.match_format.value !== (SETTINGS.match_format === "single" ? "single" : "double");
+
+  let { error } = await sb.from("settings").update(payload).eq("id", 1);
+
+  /* kolomnya belum dibuat: setelan lain tetap disimpan, formatnya yang dilewati */
+  if (error && /match_format/i.test(error.message)) {
+    delete payload.match_format;
+    ({ error } = await sb.from("settings").update(payload).eq("id", 1));
+    if (!error) {
+      toast("Setelan lain tersimpan, tapi pilihan pertemuan belum bisa disimpan — kolom match_format belum ada di tabel settings.", "warn");
+      loadAll(); return;
+    }
+  }
   if (error) return toast(error.message, "err");
+
+  if (berubah && MATCHES.length)
+    toast("Format pertemuan berubah, tapi jadwal lama masih memakai format sebelumnya. Buat ulang jadwal agar ikut menyesuaikan.", "warn");
   if (f.registration_open.value === "true" && MATCHES.length)
     toast("Pendaftaran dibuka, tapi jadwal lama masih ada. Tim baru belum masuk jadwal sampai disusun ulang.", "warn");
   else toast("Pengaturan tersimpan.");
@@ -667,20 +747,157 @@ $("#btnClearBracket").addEventListener("click", async () => {
   toast("Bracket dihapus."); loadAll();
 });
 
+/* =====================================================================
+   KIRIM DAFTAR TIM KE WHATSAPP
+   Tautan wa.me tidak bisa menembak grup tertentu — WhatsApp akan membuka
+   daftar chat dengan teks siap kirim, panitia tinggal memilih grupnya.
+   ===================================================================== */
+
+/* 08xx / 8xx / 62xx / +62xx / 062xx -> +62xx, supaya nomornya bisa ditekan di grup */
+function waNormalNomor(no) {
+  let d = String(no || "").replace(/\D/g, "");
+  if (!d) return null;
+  if (d.startsWith("0")) d = d.slice(1);
+  if (d.startsWith("620")) d = "62" + d.slice(3);
+  else if (!d.startsWith("62")) d = "62" + d;
+  return d.length < 11 ? null : "+" + d;
+}
+
+function waKapten(teamId) {
+  const roster = PLAYERS.filter(p => p.team_id === teamId);
+  return roster.find(p => p.is_captain && !p.is_sub)
+      || roster.filter(p => !p.is_sub).sort((a, b) => a.slot - b.slot)[0]
+      || null;
+}
+
+function waBlokTim(t, i) {
+  const kap = waKapten(t.id), no = waNormalNomor(t.captain_wa);
+  return [
+    `${i + 1}. *${t.name}*${t.tag ? ` (${t.tag})` : ""}`,
+    `   Ketua: ${kap ? kap.name : "— belum diisi —"}`,
+    `   WA: ${no || "— nomor belum diisi —"}`
+  ].join("\n");
+}
+
+function waDaftarTim(saring) {
+  const list = TEAMS
+    .filter(t => saring === "all" || t.status === saring)
+    .sort((a, b) => String(a.name).localeCompare(String(b.name), "id"));
+  const label = saring === "approved" ? "terverifikasi"
+              : saring === "pending" ? "menunggu verifikasi" : "terdaftar";
+  const waktu = new Date().toLocaleString("id-ID",
+    { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) + " WIB";
+  const kepala = [
+    `*DAFTAR TIM — ${(SETTINGS.tournament_name || "Turnamen").toUpperCase()}*`,
+    SETTINGS.season ? `${SETTINGS.season} · ${list.length} tim ${label}` : `${list.length} tim ${label}`,
+    `Diperbarui ${waktu}`
+  ].join("\n");
+  return { kepala, blok: list.map(waBlokTim) };
+}
+
+/* dipecah per tim supaya data satu tim tidak pernah terbelah dua pesan */
+function waPecah(kepala, blok, maks = 1400) {
+  if (!blok.length) return [kepala + "\n\nBelum ada tim pada saringan ini."];
+  const bagian = [];
+  let buf = [], panjang = 0;
+  for (const b of blok) {
+    if (panjang + b.length + 2 > maks && buf.length) { bagian.push(buf); buf = []; panjang = 0; }
+    buf.push(b); panjang += b.length + 2;
+  }
+  if (buf.length) bagian.push(buf);
+  return bagian.map((g, i) => {
+    const tanda = bagian.length > 1 ? `\n_(bagian ${i + 1} dari ${bagian.length})_` : "";
+    return (i === 0 ? kepala + tanda + "\n\n" : `*Lanjutan daftar tim*${tanda}\n\n`) + g.join("\n\n");
+  });
+}
+
+function waTeks(saring) {
+  const { kepala, blok } = waDaftarTim(saring);
+  return waPecah(kepala, blok);
+}
+
+/* ---------- panel pratinjau ---------- */
+let WA_BAGIAN = [], WA_AKTIF = 0;
+const waTutup = () => $("#waOverlay")?.remove();
+
+function waBuka() {
+  waTutup();
+  const bg = document.createElement("div");
+  bg.id = "waOverlay";
+  bg.innerHTML = `
+    <div id="waBox">
+      <div class="head">
+        <div class="grow"><p class="eyebrow">Grup panitia</p><h3 style="margin-top:8px">Kirim daftar tim</h3></div>
+        <button class="x" type="button" data-wa="tutup" aria-label="Tutup">&times;</button>
+      </div>
+      <label class="field"><span>Tim yang disertakan</span>
+        <select id="waSaring">
+          <option value="approved">Tim terverifikasi</option>
+          <option value="pending">Tim menunggu verifikasi</option>
+          <option value="all">Semua tim</option>
+        </select></label>
+      <div id="waNav"></div>
+      <textarea id="waPreview" rows="13" spellcheck="false"></textarea>
+      <p class="muted small" id="waInfo" style="margin:9px 0 16px"></p>
+      <div class="row">
+        <button class="btn" type="button" data-wa="kirim">Buka WhatsApp</button>
+        <button class="btn btn-ghost" type="button" data-wa="salin">Salin teks</button>
+        <button class="btn btn-ghost" type="button" data-wa="tutup" style="margin-left:auto">Tutup</button>
+      </div>
+    </div>`;
+  document.body.appendChild(bg);
+
+  const gambar = () => {
+    $("#waPreview").value = WA_BAGIAN[WA_AKTIF];
+    $("#waNav").innerHTML = WA_BAGIAN.length > 1
+      ? WA_BAGIAN.map((_, i) => `<button type="button" class="btn btn-ghost btn-sm ${i === WA_AKTIF ? "on" : ""}" data-wapart="${i}">Bagian ${i + 1}</button>`).join("")
+      : "";
+    $("#waInfo").textContent = WA_BAGIAN.length > 1
+      ? `Daftarnya panjang, dipecah jadi ${WA_BAGIAN.length} pesan. Kirim berurutan, satu per satu.`
+      : "WhatsApp akan membuka daftar chat — pilih grup panitia, teksnya sudah terisi. Boleh diedit dulu di sini.";
+  };
+  const susun = () => { WA_BAGIAN = waTeks($("#waSaring").value); WA_AKTIF = 0; gambar(); };
+
+  $("#waSaring").addEventListener("change", susun);
+  bg.addEventListener("click", async e => {
+    if (e.target === bg) return waTutup();
+    const part = e.target.closest("[data-wapart]");
+    if (part) { WA_AKTIF = +part.dataset.wapart; return gambar(); }
+    const act = e.target.closest("[data-wa]")?.dataset.wa;
+    if (act === "tutup") return waTutup();
+    if (act === "kirim") {
+      window.open("https://wa.me/?text=" + encodeURIComponent($("#waPreview").value), "_blank", "noopener");
+    }
+    if (act === "salin") {
+      const ta = $("#waPreview");
+      try { await navigator.clipboard.writeText(ta.value); }
+      catch { ta.select(); document.execCommand("copy"); }
+      toast("Teks tersalin.");
+    }
+  });
+  susun();
+}
+$("#btnWaList").addEventListener("click", waBuka);
+addEventListener("keydown", e => { if (e.key === "Escape") waTutup(); });
+
 /* ---------- jadwal ---------- */
 $("#btnGenSchedule").addEventListener("click", async () => {
   const ids = TEAMS.filter(t => t.status === "approved").map(t => t.id);
   if (ids.length < 2) return toast("Butuh minimal dua tim terverifikasi.", "warn");
   const bo = +(SETTINGS.bo_regular || 3);
-  if (!confirm(`Buat jadwal Best of ${bo} untuk ${ids.length} tim? Jadwal dan skor babak reguler yang ada akan dihapus.`)) return;
+  const single = isSingle();
+  const h = fmtHitung(single);
+  if (!confirm(`Buat jadwal ${single ? "single" : "double"} round robin untuk ${ids.length} tim?\n`
+    + `${h.ronde} ronde · ${h.match} match Best of ${bo} · ${h.perTim} seri per tim.\n\n`
+    + `Jadwal dan skor babak reguler yang ada akan dihapus.`)) return;
   const rows = [];
-  generateSchedule(ids).forEach(r => r.pairs.forEach(([h, a]) =>
-    rows.push({ round: r.round, leg: r.leg, home_team_id: h, away_team_id: a, best_of: bo })));
+  generateSchedule(ids, single ? 1 : 2).forEach(r => r.pairs.forEach(([h2, a]) =>
+    rows.push({ round: r.round, leg: r.leg, home_team_id: h2, away_team_id: a, best_of: bo })));
   await sb.from("matches").delete().neq("id", "00000000-0000-0000-0000-000000000000");
   const { error } = await sb.from("matches").insert(rows);
   if (error) return toast(error.message, "err");
   await sb.from("settings").update({ registration_open: false }).eq("id", 1);
-  toast(`${rows.length} match dibuat. Pendaftaran ditutup otomatis.`); loadAll();
+  toast(`${rows.length} match ${single ? "single" : "double"} round robin dibuat. Pendaftaran ditutup otomatis.`); loadAll();
 });
 
 function localValue(iso) {
@@ -724,7 +941,8 @@ function renderSchedule() {
   list.innerHTML = rounds.map(r => {
     const ms = shown.filter(m => m.round === r);
     const done = ms.filter(m => m.status === "finished").length;
-    return `<div class="round-head">Ronde ${r} · ${ms[0].leg === 2 ? "tandang" : "kandang"} · ${done}/${ms.length} selesai</div>
+    const leg = isSingle() ? "" : ` · ${+ms[0].leg === 2 ? "tandang" : "kandang"}`;
+    return `<div class="round-head">Ronde ${r}${leg} · ${done}/${ms.length} selesai</div>
       <div class="bulk-bar">
         <span class="muted small">Atur jadwal sekaligus:</span>
         <input type="datetime-local" data-bulkdate="${r}" style="width:200px">
