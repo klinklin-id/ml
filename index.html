@@ -287,8 +287,11 @@ option{background:var(--night)}
   clip-path:polygon(50% 0,100% 24%,100% 74%,50% 100%,0 74%,0 24%);background-size:cover;background-position:center}
 .logo.lg{width:46px;height:52px;font-size:17px}
 .team-cell{display:flex;align-items:center;gap:11px;min-width:0}
+.tinfo{min-width:0}
+.tline{display:flex;align-items:center;gap:7px;min-width:0}
+.tline .tname{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tname{font-weight:700;letter-spacing:.01em}
-.ttag{font-family:var(--mono);font-size:10.5px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase}
+.ttag{display:block;font-family:var(--mono);font-size:10.5px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase}
 
 /* ---------- kartu tim ---------- */
 .team-card{position:relative;background:linear-gradient(168deg,var(--panel2),var(--night));border:1px solid var(--line-soft);border-radius:var(--r);padding:18px;transition:transform .22s,border-color .22s}
@@ -334,16 +337,29 @@ tr.zone-out td{opacity:.55}
   padding:15px 20px;margin-bottom:9px;transition:border-color .2s,transform .2s}
 .match:hover{border-color:var(--line);transform:translateX(3px)}
 .match .side{display:flex;align-items:center;gap:11px;min-width:0}
-.match .side.away{flex-direction:row-reverse}
-.match .side .tname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.match .side.away{flex-direction:row-reverse;text-align:right}
+.match .side.away .tline{justify-content:flex-end}
 .match .score{text-align:center;font-family:var(--display);font-size:27px;letter-spacing:.08em;
   border-left:1px solid var(--line-soft);border-right:1px solid var(--line-soft)}
 .match .score small{display:block;font-family:var(--mono);font-size:8.5px;letter-spacing:.2em;color:var(--dim);font-weight:400}
-.match .score.pending{font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.16em}
+.match .score.pending{color:var(--dim);font-size:21px;letter-spacing:.12em}
 .match .winner .tname{color:var(--gold)}
 .match .winner .logo{box-shadow:0 0 16px rgba(245,196,81,.3)}
 .match-meta{grid-column:1/-1;font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);border-top:1px dashed var(--line-soft);padding-top:9px}
-@media(max-width:640px){.match{grid-template-columns:1fr 92px 1fr;padding:13px 14px}.match .side .tname{font-size:13px}}
+@media(max-width:640px){
+  /* nama tim panjang tidak muat berdampingan — tiap tim diberi barisnya sendiri */
+  .match{grid-template-columns:minmax(0,1fr) auto;column-gap:14px;row-gap:10px;padding:14px 15px}
+  .match .side{grid-column:1;grid-row:1}
+  .match .side.away{grid-row:2;flex-direction:row;text-align:left}
+  .match .side.away .tline{justify-content:flex-start}
+  .match .score{grid-column:2;grid-row:1/3;align-self:stretch;display:flex;flex-direction:column;justify-content:center;
+    line-height:1.15;font-size:24px;border-right:0;border-left:1px solid var(--line-soft);padding-left:15px}
+  .match .score.pending{font-size:18px}
+  .match .score small{margin-top:3px}
+  .match .side .tname{font-size:13.5px}
+  .match .side .ttag{font-size:9.5px}
+  .match-meta{grid-column:1/-1;grid-row:3}
+}
 
 /* ---------- bracket ---------- */
 .bracket-scroll{overflow-x:auto;padding:6px 0 16px}
@@ -790,9 +806,10 @@ function logoHtml(t, cls = "") {
   return `<span class="logo ${cls}"${bg}>${t.logo_url ? "" : esc(initials(t.tag || t.name))}</span>`;
 }
 const teamCell = (t, extra = "") => t
-  ? `<span class="team-cell">${logoHtml(t)}<span><span class="tname">${esc(t.name)}</span>${extra}
-      ${t.tag ? `<br><span class="ttag">${esc(t.tag)}</span>` : ""}</span></span>`
-  : `<span class="team-cell muted">${logoHtml(null)}<span class="tname">Menunggu</span></span>`;
+  ? `<span class="team-cell">${logoHtml(t)}<span class="tinfo">
+      <span class="tline"><span class="tname">${esc(t.name)}</span>${extra}</span>
+      ${t.tag ? `<span class="ttag">${esc(t.tag)}</span>` : ""}</span></span>`
+  : `<span class="team-cell muted">${logoHtml(null)}<span class="tinfo"><span class="tline"><span class="tname">Menunggu</span></span></span></span>`;
 
 /* ---------- navigasi ---------- */
 const burger = $("#burger"), mainNav = $("#mainNav"), navBackdrop = $("#navBackdrop");
@@ -1134,7 +1151,7 @@ function renderSchedule() {
       const h = teamById(m.home_team_id), a = teamById(m.away_team_id), fin = m.status === "finished";
       return `<div class="match">
         <div class="side ${fin && m.home_score > m.away_score ? "winner" : ""}">${teamCell(h)}</div>
-        <div class="score ${fin ? "" : "pending"}">${fin ? `${m.home_score} – ${m.away_score}<small>Best of ${m.best_of || 3}</small>` : "BEST OF " + (m.best_of || 3)}</div>
+        <div class="score ${fin ? "" : "pending"}">${fin ? `${m.home_score} – ${m.away_score}` : "vs"}<small>Best of ${m.best_of || 3}</small></div>
         <div class="side away ${fin && m.away_score > m.home_score ? "winner" : ""}">${teamCell(a)}</div>
         <div class="match-meta">${fin ? "Selesai" : fmtDate(m.scheduled_at)}</div></div>`;
     }).join("");
