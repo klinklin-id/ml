@@ -217,7 +217,8 @@ td.num,th.num{text-align:center;font-family:var(--mono)}
     <div class="card" style="margin-bottom:20px">
       <p class="muted small" style="margin:0 0 14px">Jadwal disusun otomatis: seluruh tim terverifikasi saling bertemu dua kali,
         kandang dan tandang. Membuat ulang akan menghapus jadwal dan skor yang ada.
-        Kosongkan kedua kotak skor untuk mengembalikan match ke status belum dimainkan.</p>
+        Kosongkan kedua kotak skor untuk mengembalikan match ke status belum dimainkan.
+        Kolom "5 terakhir" di klasemen mengikuti tanggal main; kalau tanggalnya kosong, dipakai waktu skor disimpan.</p>
       <div class="row">
         <input id="schSearch" placeholder="Cari nama tim…" style="max-width:250px">
         <select id="schRound" style="max-width:170px"></select>
@@ -821,14 +822,14 @@ document.addEventListener("click", async e => {
 document.addEventListener("click", async e => {
   const sv = e.target.closest("[data-save-match]"), op = e.target.closest("[data-open-match]");
   if (op) {
-    await sb.from("matches").update({ status: "scheduled", home_score: 0, away_score: 0 }).eq("id", op.dataset.openMatch);
+    await sb.from("matches").update({ status: "scheduled", home_score: 0, away_score: 0, updated_at: new Date().toISOString() }).eq("id", op.dataset.openMatch);
     toast("Match dibuka kembali.", "warn"); return loadAll();
   }
   if (!sv) return;
   const box = sv.closest(".adm-match");
   const bo = +(box.dataset.bo || 3);
   const h = +$("[data-f=home]", box).value, a = +$("[data-f=away]", box).value, d = $("[data-f=date]", box).value;
-  const payload = { scheduled_at: d ? new Date(d).toISOString() : null };
+  const payload = { scheduled_at: d ? new Date(d).toISOString() : null, updated_at: new Date().toISOString() };
   if (h || a) {
     if (!validScore(bo, h, a)) return toast(`Skor Bo${bo}: pemenang harus mencapai ${Math.ceil(bo / 2)} game.`, "warn");
     Object.assign(payload, { home_score: h, away_score: a, status: "finished" });
