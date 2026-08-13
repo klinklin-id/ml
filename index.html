@@ -704,11 +704,14 @@ function toast(msg, kind = "ok") {
 /* ---------- klasemen: MP > NGW > head-to-head ---------- */
 function computeStandings(teams, matches) {
   const map = new Map();
-  teams.forEach(t => map.set(t.id, { team: t, played: 0, mp: 0, mw: 0, ml: 0, gw: 0, gl: 0, streak: [], log: [] }));
+  teams.forEach(t => map.set(t.id, { team: t, played: 0, mp: 0, mw: 0, ml: 0, gw: 0, gl: 0, log: [] }));
+  const when = m => {
+    const v = m.scheduled_at || m.updated_at;
+    return v ? Date.parse(v) : null;
+  };
   const done = matches.filter(m => m.status === "finished" && map.has(m.home_team_id) && map.has(m.away_team_id))
     .sort((a, b) => {
-      const ta = a.scheduled_at ? Date.parse(a.scheduled_at) : null;
-      const tb = b.scheduled_at ? Date.parse(b.scheduled_at) : null;
+      const ta = when(a), tb = when(b);
       if (ta != null && tb != null && ta !== tb) return ta - tb;
       return (a.round - b.round) || (a.leg - b.leg);
     });
@@ -719,9 +722,8 @@ function computeStandings(teams, matches) {
     const hw = hs > as, aw = as > hs;
     if (hw) { h.mp++; h.mw++; a.ml++; } else if (aw) { a.mp++; a.mw++; h.ml++; }
     if (hw || aw) {
-      h.streak.push(hw ? "W" : "L"); a.streak.push(aw ? "W" : "L");
-      h.log.push({ vs: a.team.name, tag: a.team.tag, win: hw, score: `${hs} - ${as}`, round: m.round, at: m.scheduled_at });
-      a.log.push({ vs: h.team.name, tag: h.team.tag, win: aw, score: `${as} - ${hs}`, round: m.round, at: m.scheduled_at });
+      h.log.push({ vs: a.team.name, win: hw, score: `${hs} - ${as}`, round: m.round, at: m.scheduled_at || m.updated_at });
+      a.log.push({ vs: h.team.name, win: aw, score: `${as} - ${hs}`, round: m.round, at: m.scheduled_at || m.updated_at });
     }
   }
   const rows = [...map.values()].map(r => ({ ...r, ngw: r.gw - r.gl }));
@@ -746,7 +748,7 @@ function computeStandings(teams, matches) {
     }
     i = j + 1;
   }
-  rows.forEach((r, idx) => { r.rank = idx + 1; r.last5 = r.streak.slice(-5); });
+  rows.forEach((r, idx) => { r.rank = idx + 1; r.last5 = r.log.slice(-5); });
   return rows;
 }
 
@@ -1074,7 +1076,7 @@ function renderStandings() {
       <td class="num">${r.mw} - ${r.ml}</td>
       <td class="num"><span class="ngw ${r.ngw > 0 ? "pos" : r.ngw < 0 ? "neg" : ""}">${r.ngw > 0 ? "+" : ""}${r.ngw}</span></td>
       <td class="num">${r.gw} - ${r.gl}</td>
-      <td class="num"><span class="streak">${r.last5.map(s => `<b class="${s.toLowerCase()}">${s}</b>`).join("") || "—"}</span></td>
+      <td class="num"><span class="streak">${r.last5.map(g => `<b class="${g.win ? "w" : "l"}" title="${g.win ? "Menang" : "Kalah"} ${g.score} lawan ${esc(g.vs)} · ronde ${g.round}">${g.win ? "W" : "L"}</b>`).join("") || "—"}</span></td>
     </tr>`).join("");
 }
 
